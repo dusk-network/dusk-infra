@@ -45,6 +45,8 @@ func stats(w http.ResponseWriter, r *http.Request) {
 
 	// Spawn CPU parser
 	go collectors.CPUReader(c, 5)
+	go collectors.MemReader(c, 8)
+	go collectors.DiskReader(c, 5)
 
 	// Hold on Listen Channel
 	for {
