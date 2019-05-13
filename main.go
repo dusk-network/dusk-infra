@@ -6,14 +6,10 @@ import (
 	"net/http"
 
 	collectors "./collectors"
-
 	"github.com/gorilla/websocket"
 )
 
 var addr = flag.String("addr", "localhost:8080", "http service address")
-
-// Messages acts as a global channel used to collect statistics
-var Messages = make(chan string)
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
