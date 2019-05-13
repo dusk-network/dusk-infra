@@ -5,10 +5,15 @@ import (
 	"log"
 	"net/http"
 
+	collectors "./collectors"
+
 	"github.com/gorilla/websocket"
 )
 
 var addr = flag.String("addr", "localhost:8080", "http service address")
+
+// Messages acts as a global channel used to collect statistics
+var Messages = make(chan string)
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -17,33 +22,35 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func echo(w http.ResponseWriter, r *http.Request) {
+func main() {
+
+	flag.Parse()
+	log.SetFlags(0)
+	fs := http.FileServer(http.Dir("static"))
+	http.HandleFunc("/stats", stats)
+	http.Handle("/", fs)
+
+	//go consumer(messages)
+	log.Fatal(http.ListenAndServe(*addr, nil))
+
+}
+
+func stats(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrade:", err)
 		return
 	}
 	defer c.Close()
+
+	// Spawn CPU parser
+	go collectors.CPUReader(c, 5)
+
+	// Hold on Listen Channel
 	for {
-		mt, message, err := c.ReadMessage()
+		_, _, err := c.ReadMessage()
 		if err != nil {
-			log.Println("read:", err)
-			break
-		}
-		log.Printf("recv: %s", message)
-		err = c.WriteMessage(mt, message)
-		if err != nil {
-			log.Println("write:", err)
 			break
 		}
 	}
-}
-
-func main() {
-	flag.Parse()
-	log.SetFlags(0)
-	fs := http.FileServer(http.Dir("static"))
-	http.HandleFunc("/echo", echo)
-	http.Handle("/", fs)
-	log.Fatal(http.ListenAndServe(*addr, nil))
 }
