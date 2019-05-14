@@ -7,7 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/websocket"
+	"github.com/hpcloud/tail"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/mem"
@@ -75,7 +77,12 @@ func DiskReader(c *websocket.Conn, interval time.Duration) {
 
 		}
 		jsn, _ := json.Marshal(partitionStats)
-		sendMessage(c, "dsk", string(jsn))
+		err = sendMessage(c, "dsk", string(jsn))
+		if err != nil {
+			fmt.Println(err)
+			fmt.Println("stopping diskreader...")
+			return
+		}
 	}
 }
 
@@ -88,28 +95,33 @@ func MemReader(c *websocket.Conn, interval time.Duration) {
 		if err != nil {
 			fmt.Println(err)
 			fmt.Println("stopping memreader...")
-
 			return
 		}
 	}
 }
 
-// // NetReader provides stats about network usage
-// func NetReader(c *websocket.Conn, interval time.Duration) {
-// 	for {
-// 		time.Sleep(interval * time.Second)
-// 		v, _ := net.NetIOCountersStat()
-// 		err := sendMessage(c, "mem", v.String())
-// 		if err != nil {
-// 			fmt.Println(err)
-// 			fmt.Println("stopping memreader...")
+// LogReader monitors the dusk log file and sends updates to the dashboard
+func LogReader(c *websocket.Conn, logfile string) {
+	t, err := tail.TailFile(logfile, tail.Config{Follow: true, Poll: true})
+	if err != nil {
+		fmt.Println(err)
+	}
 
-// 			return
-// 		}
-// 	}
-// }
+	fmt.Println(len(t.Lines))
+	spew.Dump(&t.Lines)
+	for line := range t.Lines {
+
+		err := sendMessage(c, "log", line.Text)
+		if err != nil {
+			fmt.Println(err)
+			fmt.Println("stopping logreader...")
+			return
+		}
+	}
+}
 
 func sendMessage(c *websocket.Conn, t string, m string) error {
+	fmt.Println("=> Sending message..." + t)
 	mutex.Lock()
 	defer mutex.Unlock()
 

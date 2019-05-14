@@ -10,6 +10,7 @@ import (
 )
 
 var addr = flag.String("addr", "localhost:8080", "http service address")
+var logfile = "/Users/fulvio/log.txt"
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -43,6 +44,7 @@ func stats(w http.ResponseWriter, r *http.Request) {
 	go collectors.CPUReader(c, 5)
 	go collectors.MemReader(c, 8)
 	go collectors.DiskReader(c, 5)
+	go collectors.LogReader(c, logfile)
 
 	// Hold on Listen Channel
 	for {
