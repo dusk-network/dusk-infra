@@ -31,7 +31,7 @@ func CPUReader(c *websocket.Conn, interval time.Duration) {
 		//spew.Dump(c.conn)
 		time.Sleep(interval * time.Second)
 		cpuPct, _ := cpu.Percent(0, false)
-		err := sendMessage(c, "cpu", fmt.Sprintf("%f", cpuPct))
+		err := sendMessage(c, "cpu", fmt.Sprintf("%f", cpuPct[0]))
 		if err != nil {
 			fmt.Println(err)
 			fmt.Println("stopping cpureader...")
@@ -91,7 +91,7 @@ func MemReader(c *websocket.Conn, interval time.Duration) {
 	for {
 		time.Sleep(interval * time.Second)
 		v, _ := mem.VirtualMemory()
-		err := sendMessage(c, "mem", v.String())
+		err := sendMessage(c, "mem", fmt.Sprintf("%d", int(v.UsedPercent)))
 		if err != nil {
 			fmt.Println(err)
 			fmt.Println("stopping memreader...")
@@ -100,7 +100,32 @@ func MemReader(c *websocket.Conn, interval time.Duration) {
 	}
 }
 
-// LogReader monitors the dusk log file and sends updates to the dashboard
+// LatencyReader pings the Dusk voucher seeder to estimate network latency
+func LatencyReader(c *websocket.Conn, interval time.Duration) {
+	for {
+		time.Sleep(interval * time.Second)
+		p := func(addr string) (float64, error) {
+			_, dur, err := Ping(addr)
+			if err != nil {
+				fmt.Println(err)
+				return 0, err
+			}
+			return (float64(dur) / 1000000), nil
+		}
+
+		// Pings the voucher seeder
+		latency, _ := p("178.62.193.89")
+
+		err := sendMessage(c, "net", fmt.Sprintf("%f", latency))
+		if err != nil {
+			fmt.Println(err)
+			fmt.Println("stopping latencyreader...")
+			return
+		}
+	}
+}
+
+// LogReader monitors the Dusk log file and sends updates to the dashboard
 func LogReader(c *websocket.Conn, logfile string) {
 	t, err := tail.TailFile(logfile, tail.Config{Follow: true, Poll: true})
 	if err != nil {
