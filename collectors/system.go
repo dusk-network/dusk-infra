@@ -58,30 +58,28 @@ func DiskReader(c *websocket.Conn, interval time.Duration) {
 			fmt.Println(err)
 		}
 
-		var partitionStats []diskStats
-
 		for _, part := range parts {
-			u, err := disk.Usage(part.Mountpoint)
-			if err != nil {
-				fmt.Println(err)
-			}
-			d := &diskStats{
-				Mountpoint: u.Path,
-				Percent:    u.UsedPercent,
-				Total:      strconv.FormatUint(u.Total/1024/1024/1024, 10) + " GiB",
-				Free:       strconv.FormatUint(u.Free/1024/1024/1024, 10) + " GiB",
-				Used:       strconv.FormatUint(u.Used/1024/1024/1024, 10) + " GiB",
-			}
+			if part.Mountpoint == "/" {
+				u, err := disk.Usage(part.Mountpoint)
+				if err != nil {
+					fmt.Println(err)
+				}
 
-			partitionStats = append(partitionStats, *d)
+				d := &diskStats{
+					Mountpoint: u.Path,
+					Percent:    u.UsedPercent,
+					Total:      strconv.FormatUint(u.Total/1024/1024/1024, 10) + " GiB",
+					Free:       strconv.FormatUint(u.Free/1024/1024/1024, 10) + " GiB",
+					Used:       strconv.FormatUint(u.Used/1024/1024/1024, 10) + " GiB",
+				}
 
-		}
-		jsn, _ := json.Marshal(partitionStats)
-		err = sendMessage(c, "dsk", string(jsn))
-		if err != nil {
-			fmt.Println(err)
-			fmt.Println("stopping diskreader...")
-			return
+				err = sendMessage(c, "dsk", fmt.Sprintf("%d", int(d.Percent)))
+				if err != nil {
+					fmt.Println(err)
+					fmt.Println("stopping diskreader...")
+					return
+				}
+			}
 		}
 	}
 }

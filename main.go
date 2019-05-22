@@ -4,6 +4,8 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os/exec"
+	"strconv"
 
 	collectors "./collectors"
 	"github.com/gorilla/websocket"
@@ -21,6 +23,11 @@ var upgrader = websocket.Upgrader{
 
 func main() {
 
+	isRoot := checkPrivileges()
+	if isRoot == false {
+		log.Fatal("Error: must be run as root!")
+	}
+
 	flag.Parse()
 	log.SetFlags(0)
 	fs := http.FileServer(http.Dir("static"))
@@ -30,6 +37,25 @@ func main() {
 	//go consumer(messages)
 	log.Fatal(http.ListenAndServe(*addr, nil))
 
+}
+
+func checkPrivileges() bool {
+	cmd := exec.Command("id", "-u")
+	output, err := cmd.Output()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	// 0 = root, 501 = non-root user
+	i, err := strconv.Atoi(string(output[:len(output)-1]))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if i == 0 {
+		return true
+	}
+	return false
 }
 
 func stats(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +70,7 @@ func stats(w http.ResponseWriter, r *http.Request) {
 	go collectors.CPUReader(c, 5)
 	go collectors.MemReader(c, 8)
 	go collectors.LatencyReader(c, 10)
-	// go collectors.DiskReader(c, 5)
+	go collectors.DiskReader(c, 5)
 	// go collectors.LogReader(c, logfile)
 
 	// Hold on Listen Channel
