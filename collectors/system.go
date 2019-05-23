@@ -1,8 +1,11 @@
 package collectors
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -125,7 +128,46 @@ func LatencyReader(c *websocket.Conn, interval time.Duration) {
 
 // LogReader monitors the Dusk log file and sends updates to the dashboard
 func LogReader(c *websocket.Conn, logfile string) {
-	t, err := tail.TailFile(logfile, tail.Config{Follow: true, Poll: true})
+	file, err := os.Open(logfile)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	defer file.Close()
+
+	reader := bufio.NewReader(file)
+
+	var fileBuffLines = make([]string, 0)
+
+	for {
+		line, _, err := reader.ReadLine()
+
+		if err == io.EOF {
+			break
+		}
+
+		fileBuffLines = append(fileBuffLines, string(line))
+	}
+	fmt.Println(len(fileBuffLines))
+
+	length := len(fileBuffLines)
+	lineCount := 3
+
+	if lineCount > length {
+		lineCount = length
+	}
+
+	for i := length - lineCount; i < length; i++ {
+		fmt.Println("yo")
+		err = sendMessage(c, "log", fileBuffLines[i])
+	}
+
+	fi, err := file.Stat()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	t, err := tail.TailFile(logfile, tail.Config{Follow: true, Poll: true, Location: &tail.SeekInfo{fi.Size(), os.SEEK_SET}})
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -134,7 +176,7 @@ func LogReader(c *websocket.Conn, logfile string) {
 	spew.Dump(&t.Lines)
 	for line := range t.Lines {
 
-		err := sendMessage(c, "log", line.Text)
+		err = sendMessage(c, "log", line.Text)
 		if err != nil {
 			fmt.Println(err)
 			fmt.Println("stopping logreader...")

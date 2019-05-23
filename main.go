@@ -71,7 +71,7 @@ func stats(w http.ResponseWriter, r *http.Request) {
 	go collectors.MemReader(c, 8)
 	go collectors.LatencyReader(c, 10)
 	go collectors.DiskReader(c, 5)
-	// go collectors.LogReader(c, logfile)
+	go collectors.LogReader(c, logfile)
 
 	// Hold on Listen Channel
 	for {
