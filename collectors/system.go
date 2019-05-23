@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/websocket"
 	"github.com/hpcloud/tail"
 	"github.com/shirou/gopsutil/cpu"
@@ -148,17 +147,17 @@ func LogReader(c *websocket.Conn, logfile string) {
 
 		fileBuffLines = append(fileBuffLines, string(line))
 	}
-	fmt.Println(len(fileBuffLines))
 
 	length := len(fileBuffLines)
-	lineCount := 3
+
+	// Send last 10 lines
+	lineCount := 10
 
 	if lineCount > length {
 		lineCount = length
 	}
 
 	for i := length - lineCount; i < length; i++ {
-		fmt.Println("yo")
 		err = sendMessage(c, "log", fileBuffLines[i])
 	}
 
@@ -172,10 +171,7 @@ func LogReader(c *websocket.Conn, logfile string) {
 		fmt.Println(err)
 	}
 
-	fmt.Println(len(t.Lines))
-	spew.Dump(&t.Lines)
 	for line := range t.Lines {
-
 		err = sendMessage(c, "log", line.Text)
 		if err != nil {
 			fmt.Println(err)
