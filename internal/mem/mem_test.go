@@ -1,24 +1,22 @@
-package disk_test
+package mem_test
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.dusk.network/dusk-core/node-monitor/internal/disk"
+	"gitlab.dusk.network/dusk-core/node-monitor/internal/mem"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
 )
 
-func TestDisk(t *testing.T) {
+func TestMem(t *testing.T) {
 	w := new(bytes.Buffer)
 	m := &monitor.Param{
 		Timestamp: time.Now(),
 	}
 
-	mntr := &disk.Disk{}
+	mntr := &mem.Mem{}
 	assert.NoError(t, mntr.Monitor(w, m))
 	assert.NotNil(t, m.Value)
-	fmt.Println(m.Value)
 }

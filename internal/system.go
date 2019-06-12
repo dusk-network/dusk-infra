@@ -19,6 +19,7 @@ import (
 
 // websockets in golang do not support concurrent write, so we have to use a Mutex
 var mutex = &sync.Mutex{}
+var log = lb.WithField("process", "system")
 
 type messg struct {
 	Timestamp time.Time `json:"timestamp"`
@@ -35,8 +36,7 @@ func CPUReader(c *websocket.Conn, interval time.Duration) {
 		cpuPct, _ := cpu.Percent(0, false)
 		err := sendMessage(c, "cpu", fmt.Sprintf("%f", cpuPct[0]))
 		if err != nil {
-			fmt.Println(err)
-			fmt.Println("stopping cpureader...")
+			log.WithError(err).Errorln("error in cpureader. Stopping...")
 			return
 		}
 	}
@@ -57,26 +57,29 @@ func DiskReader(c *websocket.Conn, interval time.Duration) {
 
 		parts, err := disk.Partitions(false)
 		if err != nil {
-			fmt.Println(err)
+			log.WithError(err).Errorln("error in reading disk partitions. Stopping...")
+			return
 		}
 
 		for _, part := range parts {
 			if part.Mountpoint == "/" {
 				u, err := disk.Usage(part.Mountpoint)
 				if err != nil {
-					fmt.Println(err)
+					log.WithError(err).Errorln("error in reading disk partitions. Stopping...")
+					return
 				}
 
 				d := &diskStats{
 					Mountpoint: u.Path,
 					Percent:    u.UsedPercent,
-					Total:      strconv.FormatUint(u.Total/1024/1024/1024, 10) + " GiB",
-					Free:       strconv.FormatUint(u.Free/1024/1024/1024, 10) + " GiB",
-					Used:       strconv.FormatUint(u.Used/1024/1024/1024, 10) + " GiB",
+					Total:      fmt.Stringf("%b GiB", strconv.FormatUint(u.Total/1024/1024/1024, 10)),
+					Free:       fmt.Stringf("%b GiB", strconv.FormatUint(u.Free/1024/1024/1024, 10)),
+					Used:       fmt.Stringf("%b GiB", strconv.FormatUint(u.Used/1024/1024/1024, 10)),
 				}
 
 				err = sendMessage(c, "dsk", fmt.Sprintf("%d", int(d.Percent)))
 				if err != nil {
+
 					fmt.Println(err)
 					fmt.Println("stopping diskreader...")
 					return
