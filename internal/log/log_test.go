@@ -3,7 +3,12 @@ package log_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
 	"testing"
+	"time"
 
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
 
@@ -33,14 +38,76 @@ func TestWriteLastLines(t *testing.T) {
 			return
 		}
 
-		m := monitor.Param{}
 		d := json.NewDecoder(w)
 		for _, v := range tt.values {
-			if assert.NoError(t, d.Decode(&m)) {
-				assert.Equal(t, v, m.Value)
-			}
+			assert.NoError(t, testJsonReception(d, v))
 		}
 	}
 }
 
-func TestTailLog(t *testing.T) {}
+func TestMonitor(t *testing.T) {
+	l := log.New("")
+	r := new(bytes.Buffer)
+
+	test := "pippo"
+	testM := &monitor.Param{
+		Value:     test,
+		Timestamp: time.Now(),
+		Metric:    "log",
+	}
+
+	if !assert.NoError(t, l.Monitor(r, testM)) {
+		return
+	}
+
+	d := json.NewDecoder(r)
+	assert.NoError(t, testJsonReception(d, testM.Value))
+}
+
+func testJsonReception(d *json.Decoder, test string) error {
+	m := &monitor.Param{}
+	if err := d.Decode(m); err != nil {
+		return err
+	}
+
+	if test != m.Value {
+		return fmt.Errorf("Expected %v, got %v", test, m.Value)
+	}
+	return nil
+}
+
+func TestTailLog(t *testing.T) {
+	r, w := io.Pipe()
+	f, err := ioutil.TempFile("", ".test.log")
+	fName := f.Name()
+	if !assert.NoError(t, err) {
+		return
+	}
+	defer os.Remove(f.Name())
+	l := log.New(fName)
+	file, err := os.Open(fName)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	readyChan := make(chan struct{})
+	go l.TailLog(file, w, false, readyChan)
+	//giving some time
+	select {
+	case <-time.After(100 * time.Millisecond):
+		_, err = f.Write([]byte("pippo\n"))
+		time.Sleep(100 * time.Millisecond)
+		if assert.NoError(t, err) {
+			d := json.NewDecoder(r)
+			assert.NoError(t, testJsonReception(d, "pippo"))
+
+			if !assert.NoError(t, l.TailProc.Stop()) {
+				assert.FailNow(t, "error in stopping tail process")
+			}
+			e := <-l.QuitChan
+			assert.Error(t, io.EOF, e)
+		}
+	case err = <-l.QuitChan:
+		assert.FailNow(t, "%v", err)
+	}
+}

@@ -2,7 +2,6 @@ package disk_test
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 	"time"
 
@@ -20,5 +19,4 @@ func TestDisk(t *testing.T) {
 	mntr := &disk.Disk{}
 	assert.NoError(t, mntr.Monitor(w, m))
 	assert.NotNil(t, m.Value)
-	fmt.Println(m.Value)
 }

@@ -3,6 +3,7 @@ package log
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
 	"time"
@@ -14,7 +15,8 @@ import (
 // LogProc is a convenience wrapper over a log file tailing
 type LogProc struct {
 	logFile  string
-	QuitChan chan<- error
+	QuitChan chan error
+	TailProc *tail.Tail
 }
 
 // New creates a *LogProc
@@ -30,7 +32,7 @@ func New(logFile string) *LogProc {
 // StreamLog first Writes the tail (last 10 lines) of a file and thus spawns a goroutine that pipes the tail of a file to a writer.
 // In case of errors within the tailing goroutine it notifies the parent process through an error channel before exiting
 // Returns error if the synchronous operation of opening the file and reading the last 10 lines fails
-func (l *LogProc) StreamLog(w io.Writer) error {
+func (l *LogProc) StreamLog(w io.Writer, closeOnExit bool) error {
 	file, err := os.Open(l.logFile)
 	if err != nil {
 		return err
@@ -41,7 +43,8 @@ func (l *LogProc) StreamLog(w io.Writer) error {
 		return err
 	}
 
-	go l.TailLog(file, w)
+	readyChan := make(chan struct{})
+	go l.TailLog(file, w, closeOnExit, readyChan)
 	return nil
 }
 
@@ -86,8 +89,11 @@ func (l *LogProc) WriteLastLines(r io.Reader, w io.Writer, nrLines int) error {
 }
 
 // TailLog tails a file and writes on a writer
-func (l *LogProc) TailLog(f *os.File, w io.Writer) {
-	defer f.Close()
+func (l *LogProc) TailLog(f *os.File, w io.Writer, closeOnExit bool, ready chan struct{}) {
+	if closeOnExit {
+		defer f.Close()
+	}
+
 	logfile := f.Name()
 	fi, err := f.Stat()
 
@@ -101,25 +107,27 @@ func (l *LogProc) TailLog(f *os.File, w io.Writer) {
 		Poll:   true,
 		Location: &tail.SeekInfo{
 			Offset: fi.Size(),
-			Whence: io.SeekCurrent,
+			Whence: io.SeekStart,
 			// Whence: io.SeekStart,
 		},
 	}
 
-	t, err := tail.TailFile(logfile, cfg)
+	l.TailProc, err = tail.TailFile(logfile, cfg)
 	if err != nil {
 		l.QuitChan <- err
 		return
 	}
 
-	for line := range t.Lines {
+	ready <- struct{}{}
+
+	for line := range l.TailProc.Lines {
 		m := newParam(line.Text)
 		if err := l.Monitor(w, m); err != nil {
 			l.QuitChan <- err
 			return
 		}
 	}
-	l.QuitChan <- io.EOF
+	l.QuitChan <- errors.New("Tail process stopped")
 }
 
 func newParam(m string) *monitor.Param {
