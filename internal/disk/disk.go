@@ -1,6 +1,7 @@
 package disk
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -41,6 +42,13 @@ func (d *Disk) Monitor(w io.Writer, m *monitor.Param) error {
 			}
 
 			m.Value = fmt.Sprintf("%d", int(d.Percent))
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			if _, err := w.Write(b); err != nil {
+				return err
+			}
 			return nil
 		}
 	}

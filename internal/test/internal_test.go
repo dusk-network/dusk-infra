@@ -31,6 +31,8 @@ func TestSuite(t *testing.T) {
 
 		if assert.NoError(t, tt.mon.Monitor(w, m), "error messages for process %s", tt.name) {
 			assert.NotNilf(t, m.Value, tt.name)
+
+			assert.NotEmpty(t, w.Bytes())
 		}
 	}
 }

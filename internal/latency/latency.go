@@ -13,7 +13,7 @@ type Latency struct {
 	target string //"178.62.193.89"
 }
 
-func New(t string) *monitor.Monitor {
+func New(t string) monitor.Supervisor {
 	return &Latency{target: t}
 }
 

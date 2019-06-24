@@ -83,6 +83,7 @@ func TestTailLog(t *testing.T) {
 	if !assert.NoError(t, err) {
 		return
 	}
+
 	defer os.Remove(f.Name())
 	l := log.New(fName)
 	file, err := os.Open(fName)
@@ -90,8 +91,7 @@ func TestTailLog(t *testing.T) {
 		return
 	}
 
-	readyChan := make(chan struct{})
-	go l.TailLog(file, w, false, readyChan)
+	go l.TailLog(file, w, false)
 	//giving some time
 	select {
 	case <-time.After(100 * time.Millisecond):

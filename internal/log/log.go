@@ -4,13 +4,17 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"time"
 
 	"github.com/hpcloud/tail"
+	"github.com/sirupsen/logrus"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
 )
+
+var lg = logrus.WithField("process", "logtail")
 
 // LogProc is a convenience wrapper over a log file tailing
 type LogProc struct {
@@ -21,6 +25,10 @@ type LogProc struct {
 
 // New creates a *LogProc
 func New(logFile string) *LogProc {
+	if _, err := os.Stat(logFile); os.IsNotExist(err) {
+		return nil
+	}
+
 	s := &LogProc{
 		logFile:  logFile,
 		QuitChan: make(chan error),
@@ -31,21 +39,23 @@ func New(logFile string) *LogProc {
 
 // StreamLog first Writes the tail (last 10 lines) of a file and thus spawns a goroutine that pipes the tail of a file to a writer.
 // In case of errors within the tailing goroutine it notifies the parent process through an error channel before exiting
-// Returns error if the synchronous operation of opening the file and reading the last 10 lines fails
-func (l *LogProc) StreamLog(w io.Writer, closeOnExit bool) error {
+// panics if it fails to setup the Tail process. Otherwise it gracefully exits and writes the reason on the LogProc.QuitChan channel.
+// Note: since the process is blocking, it should run on a goroutine
+func (l *LogProc) Wire(w io.WriteCloser) {
+	defer w.Close()
+
 	file, err := os.Open(l.logFile)
 	if err != nil {
-		return err
+		lg.WithError(err).Errorln(fmt.Sprintf("cannot start tailing log %s. Aborting", l.logFile))
+		return
 	}
 
 	r := bufio.NewReader(file)
 	if err := l.WriteLastLines(r, w, 10); err != nil {
-		return err
+		lg.WithError(err).Errorln(fmt.Sprintf("cannot read last lines of the %s. Aborting", l.logFile))
 	}
 
-	readyChan := make(chan struct{})
-	go l.TailLog(file, w, closeOnExit, readyChan)
-	return nil
+	l.TailLog(file, w, true)
 }
 
 // Monitor simply writes a JSON stream to the writer
@@ -89,7 +99,7 @@ func (l *LogProc) WriteLastLines(r io.Reader, w io.Writer, nrLines int) error {
 }
 
 // TailLog tails a file and writes on a writer
-func (l *LogProc) TailLog(f *os.File, w io.Writer, closeOnExit bool, ready chan struct{}) {
+func (l *LogProc) TailLog(f *os.File, w io.Writer, closeOnExit bool) {
 	if closeOnExit {
 		defer f.Close()
 	}
@@ -113,12 +123,11 @@ func (l *LogProc) TailLog(f *os.File, w io.Writer, closeOnExit bool, ready chan 
 	}
 
 	l.TailProc, err = tail.TailFile(logfile, cfg)
+
 	if err != nil {
 		l.QuitChan <- err
 		return
 	}
-
-	ready <- struct{}{}
 
 	for line := range l.TailProc.Lines {
 		m := newParam(line.Text)
@@ -127,6 +136,10 @@ func (l *LogProc) TailLog(f *os.File, w io.Writer, closeOnExit bool, ready chan 
 			return
 		}
 	}
+	l.Disconnect()
+}
+
+func (l *LogProc) Disconnect() {
 	l.QuitChan <- errors.New("Tail process stopped")
 }
 
