@@ -5,8 +5,6 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +15,7 @@ import (
 	"github.com/namsral/flag"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/cpu"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/disk"
+	"gitlab.dusk.network/dusk-core/node-monitor/internal/latency"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/log"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/mem"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
@@ -120,25 +119,6 @@ func checkLatencyProberIP(l string) {
 	}
 }
 
-func checkPrivileges() {
-	cmd := exec.Command("id", "-u")
-	output, err := cmd.Output()
-
-	if err != nil {
-		fmt.Printf("Unexpected error in checking priviledges: %v", err)
-		os.Exit(1)
-	}
-
-	// 0 = root, 501 = non-root user
-	if i, err := strconv.Atoi(string(output[:len(output)-1])); err != nil {
-		fmt.Printf("Unexpected error in checking priviledges: %v", err)
-		os.Exit(1)
-	} else if i != 0 {
-		fmt.Println("Not enough priviledges. Are you running as root?")
-		os.Exit(3)
-	}
-}
-
 func initMonitors(c cfg) []monitor.Mon {
 	mons := make([]monitor.Mon, 0)
 	mons = append(
@@ -153,17 +133,21 @@ func initMonitors(c cfg) []monitor.Mon {
 			8*time.Second,
 			"mem",
 		),
-		// monitor.New(
-		// 	latency.New(c.latencyIP),
-		// 	10,
-		// 	"latency",
-		// ),
 		monitor.New(
 			&disk.Disk{},
 			5*time.Second,
 			"disk",
 		),
 	)
+
+	l := latency.New(c.latencyIP)
+	if err := l.(*latency.Latency).ProbePriviledges(); err == nil {
+		m := monitor.New(l, 10*time.Second, "latency")
+		mons = append(mons, m)
+	} else {
+		fmt.Println("Cannot setup the latency prober. Are you running with enough proviledges?")
+		os.Exit(3)
+	}
 
 	// if the logfile does not exist we don't add it to the processes
 	if l := log.New(c.logfile); l != nil {

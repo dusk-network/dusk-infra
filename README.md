@@ -65,9 +65,9 @@ Specify the URL of the prober used to measure latency. Normally (on testnet) thi
 
 The latency is measured by sending an ICMP packet to the prober and wait for a response. On a Unix system, usually this requires some heightened priviledges (root) and therefore, the latency monitoring will be activated only if the `monitor` process will be granted said priviledges.
 This can be achieved in the following ways:
- - Running the `monitor` as root (discouraged)
- - Modifying the priviledges of `ping_group_range` by running `sudo sysctl -w net.ipv4.ping_group_range="0   2147483647"`
-- Use `setcap` to allow binary to bind to raw sockets: `setcap cap_net_raw=+ep /path/to/monitor`
+ - Use `setcap` to allow binary to bind to raw sockets: `setcap cap_net_raw=+ep /path/to/monitor` (*preferred*)
+ - Modifying the priviledges of `ping_group_range` by running `sudo sysctl -w net.ipv4.ping_group_range="0   2147483647"` (*discouraged*: this is system dependant)
+ - Running the `monitor` as root (*discouraged*: potentially dangerous to export the ENV on superuser)
 
 ### Verbose
 
