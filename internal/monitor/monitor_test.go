@@ -48,4 +48,4 @@ func (m mockSupervisor) Monitor(w io.Writer, p *monitor.Param) error {
 		return err
 	}
 	return nil
-}
+

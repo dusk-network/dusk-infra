@@ -16,9 +16,10 @@ type (
 	}
 
 	Param struct {
-		Timestamp time.Time `json:"timestamp"`
-		Metric    string    `json:"metric"`
-		Value     string    `json:"value"`
+		Timestamp time.Time              `json:"timestamp"`
+		Metric    string                 `json:"metric"`
+		Value     string                 `json:"value"`
+		Data      map[string]interface{} `json:"data"`
 	}
 
 	Supervisor interface {

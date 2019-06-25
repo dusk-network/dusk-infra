@@ -145,7 +145,7 @@ func (l *LogProc) Disconnect() {
 
 func newParam(m string) *monitor.Param {
 	return &monitor.Param{
-		Metric:    "log",
+		Metric:    "tail",
 		Value:     m,
 		Timestamp: time.Now(),
 	}
