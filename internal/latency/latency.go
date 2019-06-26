@@ -2,6 +2,7 @@ package latency
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"time"
 
@@ -36,10 +37,11 @@ func (l *Latency) Monitor(w io.Writer, m *monitor.Param) error {
 	}
 
 	if loss > 10 {
+		m.Data = map[string]interface{}{"error": fmt.Sprintf("packet loss at %.1f", loss)}
 		// TODO: how do we send the notification in this case?
 	}
 
-	m.Value = avgRtt.String()
+	m.Value = fmt.Sprintf("%.2f", float64(avgRtt/time.Millisecond))
 	b, err := json.Marshal(m)
 	if err != nil {
 		return err

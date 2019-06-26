@@ -2,13 +2,15 @@ package web
 
 import (
 	"fmt"
+	"io"
+	"math/rand"
 	"net/http"
 	"sync"
 
 	lg "github.com/sirupsen/logrus"
 
+	j "gitlab.dusk.network/dusk-core/node-monitor/internal/json"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
-	"gitlab.dusk.network/dusk-core/node-monitor/web/json"
 
 	"github.com/gorilla/websocket"
 )
@@ -22,33 +24,63 @@ var upgrader = websocket.Upgrader{
 
 var log = lg.WithField("process", "server")
 
-type (
-	Srv struct {
-		Monitors []monitor.Mon
-	}
-
-	synConn struct {
-		*websocket.Conn
-		lock sync.RWMutex
-	}
-)
-
-func (s *synConn) WriteJSON(v string) error {
-	log.WithField("payload", v).Debugln("sending outgoing packet")
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	return s.Conn.WriteJSON(v)
+type WriterMux struct {
+	sync.Mutex
+	io.Writer
+	conns map[uint32]*j.SynConn
 }
 
-func (s *synConn) ReadMessage() (int, []byte, error) {
-	log.Debugln("reading incoming messages")
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	return s.Conn.ReadMessage()
+func NewWriterMux() *WriterMux {
+	return &WriterMux{
+		conns: make(map[uint32]*j.SynConn),
+	}
+}
+
+func (mux *WriterMux) Write(b []byte) (int, error) {
+	if mux.Writer != nil {
+		return mux.Writer.Write(b)
+	}
+	log.Debugln("No writer specified yet. Dropping packet")
+	return 0, nil
+}
+
+func (mux *WriterMux) Add(jw j.JsonReadWriter) uint32 {
+	mux.Lock()
+	defer mux.Unlock()
+	id := rand.Uint32()
+	mux.conns[id] = j.New(jw)
+	mux.rebuildWriter()
+	return id
+}
+
+func (mux *WriterMux) Remove(id uint32) {
+	mux.Lock()
+	defer mux.Unlock()
+	delete(mux.conns, id)
+	mux.rebuildWriter()
+}
+
+func (mux *WriterMux) rebuildWriter() {
+	var curConn []io.Writer
+	for _, conn := range mux.conns {
+		curConn = append(curConn, conn)
+	}
+
+	mux.Writer = io.MultiWriter(curConn...)
+}
+
+type Srv struct {
+	Monitors []monitor.Mon
+	lock     sync.Mutex
+	muxConn  *WriterMux
 }
 
 // Serve the monitoring page and upgrade the route `/ws` to websockets listening to the streams of monitoring information
 func (s *Srv) Serve(addr string) error {
+	s.muxConn = NewWriterMux()
+	for _, mon := range s.Monitors {
+		go mon.Wire(s.muxConn)
+	}
 
 	d := http.Dir("static")
 	fs := http.FileServer(d)
@@ -67,30 +99,28 @@ func (s *Srv) stats(w http.ResponseWriter, r *http.Request) {
 		log.WithError(err).Errorln("problem in upgrading the websocket")
 		return
 	}
-	defer s.dispose(c)
 
-	sc := &synConn{c, sync.RWMutex{}}
-	for _, mon := range s.Monitors {
-		go json.New(sc, mon).Connect()
+	s.lock.Lock()
+	id := s.muxConn.Add(c)
+	s.lock.Unlock()
+
+	defer s.dispose(id, c)
+
+	for {
+		_, message, err := c.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.WithError(err).Debugln("closing websocket")
+			}
+			break
+		}
+		log.WithField("message", message).Debugln("message received")
 	}
-
-	quitC := make(chan struct{})
-	<-quitC
-
-	// for {
-	// 	_, _, err := sc.ReadMessage()
-	// 	if err != nil {
-	// 		log.WithError(err).Errorln("problem in receiving messages")
-	// 		return
-	// 	}
-	// 	log.Debugln("got mail!")
-	// }
 }
 
-func (s *Srv) dispose(c *websocket.Conn) {
-	// this supposedly triggers an error on the reader part of the infinite for loop of the Bridge.Connect method
-	defer c.Close()
-	for _, mon := range s.Monitors {
-		mon.Disconnect()
-	}
+func (s *Srv) dispose(id uint32, c *websocket.Conn) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.muxConn.Remove(id)
+	c.Close()
 }

@@ -5,8 +5,12 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
+
+	logstream "gitlab.dusk.network/dusk-core/node-monitor/api"
 
 	"github.com/sirupsen/logrus"
 
@@ -21,7 +25,7 @@ import (
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
 )
 
-const defaultLogAddress = "unix:///var/logmon.sock"
+const defaultLogAddress = "unix:///var/tmp/logmon.sock"
 
 type cfg struct {
 	debug     bool
@@ -105,6 +109,25 @@ func main() {
 		Monitors: m,
 	}
 	fmt.Printf("Starting up the server at %v\n", c.httpAddr)
+	// Handle common process-killing signals so we can gracefully shut down:
+	sigc := make(chan os.Signal, 1)
+	fmt.Println("Listening to signals 1")
+	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+	go func(c chan os.Signal, monitors []monitor.Mon) {
+		fmt.Println("Listening to signals")
+		// Wait for a SIGINT or SIGKILL:
+		sig := <-c
+		fmt.Printf("Caught signal %s: shutting down.\n", sig)
+
+		// Stop listening (and unlink the socket if unix type):
+		for _, mon := range monitors {
+			mon.Shutdown()
+		}
+
+		// And we're done:
+		os.Exit(0)
+	}(sigc, m)
+
 	if err := srv.Serve(strings.Trim(c.httpAddr, " ")); err != nil {
 		fmt.Printf("Error in serving the monitoring data")
 		os.Exit(1)
@@ -121,8 +144,10 @@ func checkLatencyProberIP(l string) {
 
 func initMonitors(c cfg) []monitor.Mon {
 	mons := make([]monitor.Mon, 0)
+	// if the url is specified we create the logstream server
 	mons = append(
 		mons,
+		logstream.New(c.u),
 		monitor.New(
 			&cpu.CPU{},
 			5*time.Second,
@@ -155,5 +180,6 @@ func initMonitors(c cfg) []monitor.Mon {
 	} else {
 		fmt.Println("Logfile not found. Log screening cannot be started")
 	}
+
 	return mons
 }

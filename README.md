@@ -46,9 +46,9 @@ Specify the location of the node's log file to monitor for warning and errors
 
 ### 
   -u value
-    	URI of the log monitoring server (default "unix:///var/logmon.sock")(shorthand)
+    	URI of the log monitoring server (default "unix:///var/tmp/logmon.sock")(shorthand)
   -uri-logserver value
-    	URI of the log monitoring server (default "unix:///var/logmon.sock")
+    	URI of the log monitoring server (default "unix:///var/tmp/logmon.sock")
 
 ### Latency prober address
 

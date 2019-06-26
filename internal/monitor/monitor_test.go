@@ -8,17 +8,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
-	"gitlab.dusk.network/dusk-core/node-monitor/internal/test"
 )
 
 func TestMonitor(t *testing.T) {
 	r, w := io.Pipe()
-	closer := test.NewCloser(w)
 	buf := new(bytes.Buffer)
 	s := mockSupervisor{t: "test"}
 
 	m := monitor.New(s, 10*time.Millisecond, "test")
-	go m.Wire(closer)
+	go m.Wire(w)
 
 	//giving enough time to monitor.Wire
 	time.Sleep(time.Millisecond)

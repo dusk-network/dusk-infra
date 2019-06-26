@@ -86,17 +86,13 @@ func TestTailLog(t *testing.T) {
 
 	defer os.Remove(f.Name())
 	l := log.New(fName)
-	file, err := os.Open(fName)
-	if !assert.NoError(t, err) {
-		return
-	}
 
-	go l.TailLog(file, w, false)
+	go l.TailLog(w)
 	//giving some time
 	select {
-	case <-time.After(100 * time.Millisecond):
+	case <-time.After(5 * time.Millisecond):
 		_, err = f.Write([]byte("pippo\n"))
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 		if assert.NoError(t, err) {
 			d := json.NewDecoder(r)
 			assert.NoError(t, testJsonReception(d, "pippo"))
@@ -109,5 +105,38 @@ func TestTailLog(t *testing.T) {
 		}
 	case err = <-l.QuitChan:
 		assert.FailNow(t, "%v", err)
+	}
+}
+
+func TestShutdown(t *testing.T) {
+	_, w := io.Pipe()
+	f, err := ioutil.TempFile("", ".test.log")
+	fName := f.Name()
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	defer os.Remove(f.Name())
+	l := log.New(fName)
+
+	go l.TailLog(w)
+
+	counter := 0
+	for {
+		select {
+		case <-time.After(5 * time.Millisecond):
+			_, _ = f.Write([]byte("pippo\n"))
+			time.Sleep(5 * time.Millisecond)
+			counter++
+			if counter > 1 {
+				t.FailNow()
+				return
+			}
+			l.Shutdown()
+
+		case <-l.QuitChan:
+			assert.False(t, l.IsOpen())
+			return
+		}
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/hpcloud/tail"
@@ -19,6 +20,9 @@ var lg = logrus.WithField("process", "logtail")
 // LogProc is a convenience wrapper over a log file tailing
 type LogProc struct {
 	logFile  string
+	file     *os.File
+	lock     sync.RWMutex
+	closed   bool
 	QuitChan chan error
 	TailProc *tail.Tail
 }
@@ -31,31 +35,47 @@ func New(logFile string) *LogProc {
 
 	s := &LogProc{
 		logFile:  logFile,
-		QuitChan: make(chan error),
+		QuitChan: make(chan error, 1),
+		closed:   true,
 	}
 
+	if err := s.open(); err != nil {
+		lg.Panic(err)
+	}
 	return s
+}
+
+func (l *LogProc) open() error {
+	var err error
+	l.lock.Lock()
+	defer l.lock.Unlock()
+	if l.closed {
+		l.file, err = os.Open(l.logFile)
+
+		if err != nil {
+			return err
+		}
+		l.closed = false
+	}
+	return nil
 }
 
 // StreamLog first Writes the tail (last 10 lines) of a file and thus spawns a goroutine that pipes the tail of a file to a writer.
 // In case of errors within the tailing goroutine it notifies the parent process through an error channel before exiting
 // panics if it fails to setup the Tail process. Otherwise it gracefully exits and writes the reason on the LogProc.QuitChan channel.
 // Note: since the process is blocking, it should run on a goroutine
-func (l *LogProc) Wire(w io.WriteCloser) {
-	defer w.Close()
-
-	file, err := os.Open(l.logFile)
-	if err != nil {
+func (l *LogProc) Wire(w io.Writer) {
+	if err := l.open(); err != nil {
 		lg.WithError(err).Errorln(fmt.Sprintf("cannot start tailing log %s. Aborting", l.logFile))
 		return
 	}
 
-	r := bufio.NewReader(file)
+	r := bufio.NewReader(l.file)
 	if err := l.WriteLastLines(r, w, 10); err != nil {
 		lg.WithError(err).Errorln(fmt.Sprintf("cannot read last lines of the %s. Aborting", l.logFile))
 	}
 
-	l.TailLog(file, w, true)
+	l.TailLog(w)
 }
 
 // Monitor simply writes a JSON stream to the writer
@@ -98,14 +118,18 @@ func (l *LogProc) WriteLastLines(r io.Reader, w io.Writer, nrLines int) error {
 	return nil
 }
 
-// TailLog tails a file and writes on a writer
-func (l *LogProc) TailLog(f *os.File, w io.Writer, closeOnExit bool) {
-	if closeOnExit {
-		defer f.Close()
-	}
+func (l *LogProc) IsOpen() bool {
+	l.lock.RLock()
+	defer l.lock.RUnlock()
+	return !l.closed
+}
 
-	logfile := f.Name()
-	fi, err := f.Stat()
+// TailLog tails a file and writes on a writer
+func (l *LogProc) TailLog(w io.Writer) {
+	defer l.close()
+
+	logfile := l.file.Name()
+	fi, err := l.file.Stat()
 
 	if err != nil {
 		l.QuitChan <- err
@@ -136,11 +160,25 @@ func (l *LogProc) TailLog(f *os.File, w io.Writer, closeOnExit bool) {
 			return
 		}
 	}
-	l.Disconnect()
+	l.Shutdown()
 }
 
-func (l *LogProc) Disconnect() {
+func (l *LogProc) close() {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+	if !l.closed {
+		_ = l.file.Close()
+		l.closed = true
+	}
+}
+
+func (l *LogProc) Shutdown() {
+	lg.Debugln("shutting down")
+	l.close()
 	l.QuitChan <- errors.New("Tail process stopped")
+	// this triggers a race condition. However we don't care as the process is shutdown anyway
+	_ = l.TailProc.Stop()
+	lg.Debugln("bye")
 }
 
 func newParam(m string) *monitor.Param {
