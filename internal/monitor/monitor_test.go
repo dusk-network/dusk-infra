@@ -21,7 +21,7 @@ func TestMonitor(t *testing.T) {
 	go m.Wire(closer)
 
 	//giving enough time to monitor.Wire
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(time.Millisecond)
 
 	// writing 3 times the test string
 	b := make([]byte, 4)
@@ -32,8 +32,6 @@ func TestMonitor(t *testing.T) {
 		}
 		buf.Write(b)
 	}
-
-	m.QuitChan <- struct{}{}
 
 	assert.Equal(t, "testtesttest", buf.String())
 }
@@ -48,4 +46,4 @@ func (m mockSupervisor) Monitor(w io.Writer, p *monitor.Param) error {
 		return err
 	}
 	return nil
-
+}

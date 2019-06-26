@@ -22,19 +22,20 @@ func TestPipe(t *testing.T) {
 	_ = os.Remove(file)
 	defer os.Remove(file)
 
-	nl := nodelogger.New(unixSoc)
+	h, err := url.Parse(unixSoc)
+	if err != nil {
+		panic(err)
+	}
+	nl := nodelogger.New(h)
 
 	w := test.NewJsonWriter()
-	res := make(chan bool, 1)
-	go nl.Pipe(w, res)
+	go nl.Pipe(w)
 
-	// await(t, nl, 100*time.Millisecond)
-	<-res
+	await(t, nl, 1*time.Millisecond)
 
 	packet := `{ "Pippo": "pluto" }`
 	if assert.NoError(t, send(packet)) {
-		// await(t, nl, 100*time.Millisecond)
-		<-res
+		await(t, nl, 1*time.Millisecond)
 		p := w.Get()
 		assert.Equal(t, "pluto", p.Data["Pippo"])
 	}
@@ -56,7 +57,7 @@ func send(data string) error {
 func await(t *testing.T, nl *nodelogger.LogProxy, d time.Duration) {
 	//giving enough time to the server to start
 	select {
-	case err := <-nl.QuitChan:
+	case err := <-nl.ErrChan:
 		assert.FailNow(t, "%s\n", err)
 	case <-time.After(d):
 		return

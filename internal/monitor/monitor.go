@@ -26,24 +26,25 @@ type (
 		Monitor(io.Writer, *Param) error
 	}
 
-	Monitor struct {
+	TickerMonitor struct {
 		Supervisor
 		Metric   string
-		QuitChan chan struct{}
+		quitChan chan struct{}
 		i        time.Duration
 	}
 )
 
-func New(s Supervisor, i time.Duration, metric string) *Monitor {
-	return &Monitor{
+func New(s Supervisor, i time.Duration, metric string) *TickerMonitor {
+	return &TickerMonitor{
 		Supervisor: s,
 		i:          i,
-		QuitChan:   make(chan struct{}, 1),
+		quitChan:   make(chan struct{}, 1),
 		Metric:     metric,
 	}
 }
 
-func (m *Monitor) Wire(w io.WriteCloser) {
+// Wire a Monitor to a writer. Usually the writer is an outgoing connection. The logic for production and forwarding of the packet is a simple ticker.
+func (m *TickerMonitor) Wire(w io.WriteCloser) {
 	ticker := time.NewTicker(m.i)
 	for {
 		select {
@@ -51,7 +52,7 @@ func (m *Monitor) Wire(w io.WriteCloser) {
 			if err := m.write(w); err != nil {
 				log.WithError(err).Errorln("connection problem")
 			}
-		case <-m.QuitChan:
+		case <-m.quitChan:
 			log.Infoln("quitting on request of the client")
 			_ = w.Close()
 			ticker.Stop()
@@ -60,11 +61,11 @@ func (m *Monitor) Wire(w io.WriteCloser) {
 	}
 }
 
-func (m *Monitor) Disconnect() {
-	m.QuitChan <- struct{}{}
+func (m *TickerMonitor) Disconnect() {
+	m.quitChan <- struct{}{}
 }
 
-func (m *Monitor) write(w io.WriteCloser) error {
+func (m *TickerMonitor) write(w io.WriteCloser) error {
 	p := &Param{
 		Metric:    m.Metric,
 		Timestamp: time.Now(),
