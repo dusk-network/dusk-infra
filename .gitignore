@@ -29,4 +29,4 @@ demo/**.*
 
 #Build byproducts
 build/
-**/build/
+hornet/build/
