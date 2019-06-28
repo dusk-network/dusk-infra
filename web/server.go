@@ -82,7 +82,7 @@ func (s *Srv) Serve(addr string) error {
 		go mon.Wire(s.muxConn)
 	}
 
-	d := http.Dir("static")
+	d := http.Dir("client")
 	fs := http.FileServer(d)
 	http.HandleFunc("/stats", s.stats)
 	http.Handle("/", fs)

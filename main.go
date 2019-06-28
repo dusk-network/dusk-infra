@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
 	logstream "gitlab.dusk.network/dusk-core/node-monitor/api"
 
@@ -17,11 +16,8 @@ import (
 	"gitlab.dusk.network/dusk-core/node-monitor/web"
 
 	"github.com/namsral/flag"
-	"gitlab.dusk.network/dusk-core/node-monitor/internal/cpu"
-	"gitlab.dusk.network/dusk-core/node-monitor/internal/disk"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/latency"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/log"
-	"gitlab.dusk.network/dusk-core/node-monitor/internal/mem"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
 )
 
@@ -148,27 +144,27 @@ func initMonitors(c cfg) []monitor.Mon {
 	mons = append(
 		mons,
 		logstream.New(c.u),
-		monitor.New(
-			&cpu.CPU{},
-			5*time.Second,
-			"cpu",
-		),
-		monitor.New(
-			&mem.Mem{},
-			8*time.Second,
-			"mem",
-		),
-		monitor.New(
-			&disk.Disk{},
-			5*time.Second,
-			"disk",
-		),
+		// monitor.New(
+		// 	&cpu.CPU{},
+		// 	5*time.Second,
+		// 	"cpu",
+		// ),
+		// monitor.New(
+		// 	&mem.Mem{},
+		// 	8*time.Second,
+		// 	"mem",
+		// ),
+		// monitor.New(
+		// 	&disk.Disk{},
+		// 	5*time.Second,
+		// 	"disk",
+		// ),
 	)
 
 	l := latency.New(c.latencyIP)
 	if err := l.(*latency.Latency).ProbePriviledges(); err == nil {
-		m := monitor.New(l, 10*time.Second, "latency")
-		mons = append(mons, m)
+		// m := monitor.New(l, 10*time.Second, "latency")
+		// mons = append(mons, m)
 	} else {
 		fmt.Println("Cannot setup the latency prober. Are you running with enough proviledges?")
 		os.Exit(3)

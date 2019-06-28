@@ -1,17 +1,4 @@
-import {
-  ADD_NODE_UPDATE,
-  UPDATE_CPU_READ,
-  UPDATE_MEM_READ,
-  UPDATE_NET_READ,
-  UPDATE_LOG_READ,
-  UPDATE_DISK_READ,
-  ADD_REGION,
-  UPDATE_LAST_BLOCK_INFO,
-  CONNECTING,
-  CONNECTED,
-  CONNECTION_ERROR,
-  DISCONNECTED
-} from "./action-types";
+import { ADD_NODE_UPDATE, ADD_REGION, CONNECTED, CONNECTING, CONNECTION_ERROR, DISCONNECTED, UPDATE_CPU_READ, UPDATE_DISK_READ, UPDATE_LAST_BLOCK_INFO, UPDATE_LOG_READ, UPDATE_MEM_READ, UPDATE_NET_READ, UPDATE_TIME_READ } from "./action-types";
 
 export const addNodeUpdate = payload => ({
   type: ADD_NODE_UPDATE,
@@ -47,6 +34,12 @@ export const updateMemoryRead = (value, timestamp) => ({
   value,
   timestamp
 });
+
+export const updateBlockTimeRead = (value, timestamp) => ({
+  type: UPDATE_TIME_READ,
+  value,
+  timestamp
+})
 
 export const addRegion = payload => ({
   type: ADD_REGION,
@@ -87,10 +80,9 @@ export const listenForUpdates = socket => dispatch => {
   ws.onclose = () => dispatch(disconnected());
   ws.onmessage = ({ data }) => {
     const payload = JSON.parse(JSON.parse(data)); // Todo: fix wrong json encoding from server
-    console.log(data);
     console.log(payload);
 
-    const { metric, value, timestamp } = payload;
+    const { metric, value, data:packet, timestamp } = payload;
     switch (metric) {
       case "cpu":
         dispatch(updateCPURead(parseFloat(value), getTime(timestamp)));
@@ -98,13 +90,21 @@ export const listenForUpdates = socket => dispatch => {
       case "mem":
         dispatch(updateMemoryRead(parseInt(value), getTime(timestamp)));
         break;
-      case "net":
+      case "latency":
         dispatch(updateNetRead(parseInt(value), getTime(timestamp)));
         break;
-      case "dsk":
+      case "disk":
         dispatch(updateDiskRead(parseInt(value), getTime(timestamp)));
         break;
       case "log":
+        const { round, step, blockHash, blockTime, code } = packet.data
+        if(code && code === "round"){
+          const block = { height: round, hash: blockHash, timestamp: timestamp }
+          dispatch(updateLastBlockInfo(block));
+          dispatch(updateBlockTimeRead(blockTime, getTime(timestamp)));
+        };
+        break;
+      case "tail":
         dispatch(updateLogRead(value, getTime(timestamp)));
         break;
 
@@ -112,7 +112,6 @@ export const listenForUpdates = socket => dispatch => {
         console.log("INVALID METRIC SENT");
     }
     // dispatch(addNodeUpdate(payload));
-    // dispatch(updateLastBlockInfo(payload));
     // dispatch(addRegion(payload));
   };
 

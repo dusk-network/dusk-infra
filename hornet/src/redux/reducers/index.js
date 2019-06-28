@@ -1,17 +1,4 @@
-import {
-  ADD_NODE_UPDATE,
-  UPDATE_CPU_READ,
-  UPDATE_MEM_READ,
-  UPDATE_NET_READ,
-  UPDATE_LOG_READ,
-  UPDATE_DISK_READ,
-  ADD_REGION,
-  CONNECTING,
-  CONNECTED,
-  CONNECTION_ERROR,
-  DISCONNECTED,
-  UPDATE_LAST_BLOCK_INFO
-} from "../action-types";
+import { ADD_NODE_UPDATE, ADD_REGION, CONNECTED, CONNECTING, CONNECTION_ERROR, DISCONNECTED, UPDATE_CPU_READ, UPDATE_DISK_READ, UPDATE_LAST_BLOCK_INFO, UPDATE_LOG_READ, UPDATE_MEM_READ, UPDATE_NET_READ, UPDATE_TIME_READ } from "../action-types";
 
 const initialState = {
   status: "disconnected",
@@ -20,6 +7,7 @@ const initialState = {
     hash: null,
     timestamp: null
   },
+  blockTime: [],
   cpu: [],
   memory: [],
   net: [],
@@ -101,6 +89,14 @@ export default function(state = initialState, action) {
       return {
         ...state,
         memory: [item, ...state.memory]
+      };
+    }
+
+    case UPDATE_TIME_READ: {
+      let { type, ...item } = action;
+      return {
+        ...state,
+        blockTime: [item, ...state.blockTime]
       };
     }
 

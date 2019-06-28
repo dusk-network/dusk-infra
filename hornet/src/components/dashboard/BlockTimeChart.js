@@ -1,37 +1,35 @@
 import React from "react";
-import {
-  LineChart,
-  CartesianGrid,
-  Line,
-  XAxis,
-  YAxis,
-  Label,
-  Tooltip,
-  Legend,
-  ResponsiveContainer
-} from "recharts";
+import ChartistGraph from "react-chartist";
+import { ResponsiveContainer } from "recharts";
 import Title from "./Title";
+
+
+
+const options = {
+  fullWidth: true,
+  showArea: true,
+  chartPadding: {
+    right: 40
+  },
+  high: 100,
+  low: 0,
+  showPoint: true,
+  lineSmooth: true,
+  classNames: {
+    line: "cpu-line",
+    point: "cpu-point",
+    area: "cpu-area"
+  }
+};
+
+const type = "Line";
 
 export default ({ data }) => (
   <>
     <Title>Block Time</Title>
     <ResponsiveContainer>
-      <LineChart
-        data={data}
-        margin={{
-          top: 16,
-          right: 16,
-          bottom: 0,
-          left: 24
-        }}
-      >
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="height" />
-        <YAxis dataKey="time" />
-        <Tooltip />
-        <Legend />
-        <Line type="monotone" dataKey="time" stroke="#556CD6" dot={false} />
-      </LineChart>
+      <ChartistGraph data={data} type={type} options={options} />
     </ResponsiveContainer>
   </>
 );
+

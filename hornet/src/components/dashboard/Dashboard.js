@@ -1,48 +1,26 @@
-import React from "react";
-import clsx from "clsx";
-import { makeStyles } from "@material-ui/core/styles";
-import CssBaseline from "@material-ui/core/CssBaseline";
-import SwipeableDrawer from "@material-ui/core/SwipeableDrawer";
 import AppBar from "@material-ui/core/AppBar";
-import Toolbar from "@material-ui/core/Toolbar";
-import List from "@material-ui/core/List";
-import Typography from "@material-ui/core/Typography";
-import Divider from "@material-ui/core/Divider";
-import IconButton from "@material-ui/core/IconButton";
-import Badge from "@material-ui/core/Badge";
 import Container from "@material-ui/core/Container";
+import CssBaseline from "@material-ui/core/CssBaseline";
 import Grid from "@material-ui/core/Grid";
 import Paper from "@material-ui/core/Paper";
-import Link from "@material-ui/core/Link";
-import MenuIcon from "@material-ui/icons/Menu";
-import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
-import NotificationsIcon from "@material-ui/icons/Notifications";
-import { mainListItems, secondaryListItems } from "./listItems";
-import BlockTimeChart from "./BlockTimeChart";
-import BlockHeight from "./BlockHeight";
-import BlockCreated from "./BlockCreated";
-import NodeLocation from "./NodeLocation";
-import Nodes from "./Nodes";
-import LogFile from "./LogFile";
-import logo from "../../d.svg";
+import { makeStyles } from "@material-ui/core/styles";
+import Toolbar from "@material-ui/core/Toolbar";
+import Typography from "@material-ui/core/Typography";
+import clsx from "clsx";
+import React from "react";
 import { connect } from "react-redux";
-import NetLatencyChart from "./NetLatencyChart";
+import logo from "../../d.svg";
+import { getCPUMetrics, getCurrentBlockInfo, getDiskMetrics, getLogMetrics, getMemoryMetrics, getNetMetrics, getTimeMetrics } from "../../redux/selectors";
+import BlockCreated from "./BlockCreated";
+import BlockHeight from "./BlockHeight";
+import BlockTimeChart from "./BlockTimeChart";
 import CPUChart from "./CPUChart";
-import MemChart from "./MemChart";
 import DiskChart from "./DiskChart";
 import HighestBlockChart from "./HighestBlockChart";
-import {
-  lastNodeUpdateSelector,
-  getCurrentBlockInfo,
-  getCPUMetrics,
-  getNetMetrics,
-  getLogMetrics,
-  getMemoryMetrics,
-  getDiskMetrics,
-  getBlockTime,
-  getNodeLocations,
-  getHighestScore
-} from "../../redux/selectors";
+import LogFile from "./LogFile";
+import MemChart from "./MemChart";
+import NetLatencyChart from "./NetLatencyChart";
+import Nodes from "./Nodes";
 
 const logify = (text, { D }) => {
   return text
@@ -154,7 +132,7 @@ const useStyles = makeStyles(theme => ({
 
 function Dashboard({
   items,
-  block,
+  lastBlock,
   blockTime,
   net,
   disk,
@@ -199,12 +177,12 @@ function Dashboard({
           <Grid container spacing={3}>
             <Grid item xs={12} sm={5}>
               <Paper className={classes.paper}>
-                <BlockHeight height={block.height} hash={block.hash} />
+                <BlockHeight height={lastBlock.height} hash={lastBlock.hash} />
               </Paper>
             </Grid>
             <Grid item xs={12} sm={7}>
               <Paper className={classes.paper}>
-                <BlockCreated timestamp={block.timestamp} />
+                <BlockCreated timestamp={lastBlock.timestamp} />
               </Paper>
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -254,11 +232,11 @@ function Dashboard({
 }
 
 const mapStateToProps = state => ({
-  block: getCurrentBlockInfo(state),
-  items: lastNodeUpdateSelector(state),
-  blockTime: getBlockTime(state),
-  locations: getNodeLocations(state),
-  score: getHighestScore(state),
+  lastBlock: getCurrentBlockInfo(state),
+  // items: lastNodeUpdateSelector(state),
+  // locations: getNodeLocations(state),
+  // score: getHighestScore(state),
+  blockTime: getTimeMetrics(state),
   cpu: getCPUMetrics(state),
   log: getLogMetrics(state),
   net: getNetMetrics(state),

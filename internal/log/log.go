@@ -65,6 +65,7 @@ func (l *LogProc) open() error {
 // panics if it fails to setup the Tail process. Otherwise it gracefully exits and writes the reason on the LogProc.QuitChan channel.
 // Note: since the process is blocking, it should run on a goroutine
 func (l *LogProc) Wire(w io.Writer) {
+	time.Sleep(5 * time.Second)
 	if err := l.open(); err != nil {
 		lg.WithError(err).Errorln(fmt.Sprintf("cannot start tailing log %s. Aborting", l.logFile))
 		return
