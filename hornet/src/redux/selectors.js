@@ -7,11 +7,17 @@ const logSelector = state => state.log || [];
 const netSelector = state => state.net || [];
 const memSelector = state => state.memory || [];
 const diskSelector = state => state.disk || [];
+const warnSelector = state => state.warnings || [];
 
 export const getCurrentBlockInfo = createSelector(
   lastBlockInfo,
   lastBlock => lastBlock
 );
+
+export const getWarnings = createSelector(
+  warnSelector,
+  warnings => warnings.slice(0, 200)
+)
 
 export const getTimeMetrics = createSelector(
   timeSelector,

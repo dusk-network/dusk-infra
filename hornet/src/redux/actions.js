@@ -1,4 +1,4 @@
-import { ADD_NODE_UPDATE, ADD_REGION, CONNECTED, CONNECTING, CONNECTION_ERROR, DISCONNECTED, UPDATE_CPU_READ, UPDATE_DISK_READ, UPDATE_LAST_BLOCK_INFO, UPDATE_LOG_READ, UPDATE_MEM_READ, UPDATE_NET_READ, UPDATE_TIME_READ } from "./action-types";
+import { ADD_NODE_UPDATE, ADD_REGION, CONNECTED, CONNECTING, CONNECTION_ERROR, DISCONNECTED, UPDATE_CPU_READ, UPDATE_DISK_READ, UPDATE_LAST_BLOCK_INFO, UPDATE_LOG_READ, UPDATE_MEM_READ, UPDATE_NET_READ, UPDATE_TIME_READ, UPDATE_WARN_LIST } from "./action-types";
 
 export const addNodeUpdate = payload => ({
   type: ADD_NODE_UPDATE,
@@ -38,6 +38,12 @@ export const updateMemoryRead = (value, timestamp) => ({
 export const updateBlockTimeRead = (value, timestamp) => ({
   type: UPDATE_TIME_READ,
   value,
+  timestamp
+})
+
+export const updateWarningList = (warnings, timestamp) => ({
+  type: UPDATE_WARN_LIST,
+  warnings,
   timestamp
 })
 
@@ -97,13 +103,23 @@ export const listenForUpdates = socket => dispatch => {
         dispatch(updateDiskRead(parseInt(value), getTime(timestamp)));
         break;
       case "log":
-        const { round, step, blockHash, blockTime, code } = packet.data
+        const { code } = packet.data
         if(code && code === "round"){
+          const {round, blockHash, blockTime} = packet.data
+
           const block = { height: round, hash: blockHash, timestamp: timestamp }
           dispatch(updateLastBlockInfo(block));
           dispatch(updateBlockTimeRead(blockTime, getTime(timestamp)));
+          break;
         };
-        break;
+
+        if(code && code === "warn"){
+          // const {level, time, message, error=""} = packet.data
+          console.log("HERE")
+          dispatch(updateWarningList(packet.data, getTime(timestamp)))
+          break;
+        }
+
       case "tail":
         dispatch(updateLogRead(value, getTime(timestamp)));
         break;

@@ -10,17 +10,17 @@ import clsx from "clsx";
 import React from "react";
 import { connect } from "react-redux";
 import logo from "../../d.svg";
-import { getCPUMetrics, getCurrentBlockInfo, getDiskMetrics, getLogMetrics, getMemoryMetrics, getNetMetrics, getTimeMetrics } from "../../redux/selectors";
+import { getCPUMetrics, getCurrentBlockInfo, getDiskMetrics, getLogMetrics, getMemoryMetrics, getNetMetrics, getTimeMetrics, getWarnings } from "../../redux/selectors";
 import BlockCreated from "./BlockCreated";
 import BlockHeight from "./BlockHeight";
 import BlockTimeChart from "./BlockTimeChart";
 import CPUChart from "./CPUChart";
 import DiskChart from "./DiskChart";
-import HighestBlockChart from "./HighestBlockChart";
 import LogFile from "./LogFile";
 import MemChart from "./MemChart";
 import NetLatencyChart from "./NetLatencyChart";
 import Nodes from "./Nodes";
+import Warnings from "./Warnings";
 
 const logify = (text, { D }) => {
   return text
@@ -139,7 +139,8 @@ function Dashboard({
   memory,
   log,
   score,
-  cpu
+  cpu,
+  warnings
 }) {
   const classes = useStyles();
   const [open, setOpen] = React.useState(false);
@@ -188,7 +189,8 @@ function Dashboard({
             <Grid item xs={12} sm={6}>
               <Paper className={fixedHeightPaper}>
                 <BlockTimeChart data={blockTime} />
-              </Paper>
+              </Paper>		Txs:    txs,
+
             </Grid>
             <Grid item xs={12} sm={6}>
               <Paper className={fixedHeightPaper}>
@@ -207,7 +209,9 @@ function Dashboard({
             </Grid>
             <Grid item xs={12} sm={6}>
               <Paper className={fixedHeightPaper}>
-                <HighestBlockChart data={score} />
+                {/* <HighestBlockChart data={score} /> */}
+                {/* Error lists to be added to a board to be less ephemeral */}
+                <Warnings items={warnings} />
               </Paper>
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -241,7 +245,8 @@ const mapStateToProps = state => ({
   log: getLogMetrics(state),
   net: getNetMetrics(state),
   disk: getDiskMetrics(state),
-  memory: getMemoryMetrics(state)
+  memory: getMemoryMetrics(state),
+  warnings: getWarnings(state)
 });
 
 export default connect(mapStateToProps)(Dashboard);
