@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"gitlab.dusk.network/dusk-core/node-monitor/internal/log"
+
 	logstream "gitlab.dusk.network/dusk-core/node-monitor/api"
 
 	"github.com/sirupsen/logrus"
@@ -194,11 +196,11 @@ func initMonitors(c cfg) []monitor.Mon {
 	}
 
 	// if the logfile does not exist we don't add it to the processes
-	// if l := log.New(c.logfile); l != nil {
-	// 	mons = append(mons, l)
-	// } else {
-	// 	fmt.Println("Logfile not found. Log screening cannot be started")
-	// }
+	if l := log.New(c.logfile); l != nil {
+		mons = append(mons, l)
+	} else {
+		fmt.Println("Logfile not found. Log screening cannot be started")
+	}
 
 	return mons
 }
