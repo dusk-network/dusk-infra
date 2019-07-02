@@ -25,7 +25,7 @@ import Warnings from "./Warnings";
 const logify = (text, { D }) => {
   return text
     .toUpperCase()
-    .split(/(D)/g)
+    .split(/\b(D)/)
     .map(item =>
       item !== "D" ? item : <img src={logo} alt="D for Dusk" className={D} />
     );
@@ -46,7 +46,8 @@ const useStyles = makeStyles(theme => ({
     display: "flex"
   },
   toolbar: {
-    paddingRight: 24 // keep right padding when drawer closed
+    paddingRight: 24, // keep right padding when drawer closed
+    whiteSpace: "pre-wrap"
   },
   toolbarIcon: {
     display: "flex",
@@ -167,7 +168,7 @@ function Dashboard({
             noWrap
             className={classes.title}
           >
-            {logify("Dashboard", classes)}
+            {logify("Dusk Dashboard", classes)}
           </Typography>
         </Toolbar>
       </AppBar>
@@ -189,8 +190,7 @@ function Dashboard({
             <Grid item xs={12} sm={6}>
               <Paper className={fixedHeightPaper}>
                 <BlockTimeChart data={blockTime} />
-              </Paper>		Txs:    txs,
-
+              </Paper>
             </Grid>
             <Grid item xs={12} sm={6}>
               <Paper className={fixedHeightPaper}>

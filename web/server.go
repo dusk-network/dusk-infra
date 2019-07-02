@@ -2,15 +2,15 @@ package web
 
 import (
 	"fmt"
-	"io"
-	"math/rand"
 	"net/http"
 	"sync"
 
+	"gitlab.dusk.network/dusk-core/node-monitor/internal/aggregator"
+
 	lg "github.com/sirupsen/logrus"
 
-	j "gitlab.dusk.network/dusk-core/node-monitor/internal/json"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
+	"gitlab.dusk.network/dusk-core/node-monitor/internal/mux"
 
 	"github.com/gorilla/websocket"
 )
@@ -24,60 +24,26 @@ var upgrader = websocket.Upgrader{
 
 var log = lg.WithField("process", "server")
 
-type WriterMux struct {
-	sync.Mutex
-	io.Writer
-	conns map[uint32]*j.SynConn
-}
-
-func NewWriterMux() *WriterMux {
-	return &WriterMux{
-		conns: make(map[uint32]*j.SynConn),
-	}
-}
-
-func (mux *WriterMux) Write(b []byte) (int, error) {
-	if mux.Writer != nil {
-		return mux.Writer.Write(b)
-	}
-	log.Debugln("No writer specified yet. Dropping packet")
-	return 0, nil
-}
-
-func (mux *WriterMux) Add(jw j.JsonReadWriter) uint32 {
-	mux.Lock()
-	defer mux.Unlock()
-	id := rand.Uint32()
-	mux.conns[id] = j.New(jw)
-	mux.rebuildWriter()
-	return id
-}
-
-func (mux *WriterMux) Remove(id uint32) {
-	mux.Lock()
-	defer mux.Unlock()
-	delete(mux.conns, id)
-	mux.rebuildWriter()
-}
-
-func (mux *WriterMux) rebuildWriter() {
-	var curConn []io.Writer
-	for _, conn := range mux.conns {
-		curConn = append(curConn, conn)
-	}
-
-	mux.Writer = io.MultiWriter(curConn...)
-}
-
 type Srv struct {
 	Monitors []monitor.Mon
 	lock     sync.Mutex
-	muxConn  *WriterMux
+	muxConn  *mux.Writer
+	aw       *aggregator.Client
+}
+
+func New(m []monitor.Mon, a *aggregator.Client) *Srv {
+	muxConn := mux.New()
+	if a != nil {
+		muxConn.Add(a)
+	}
+	return &Srv{
+		Monitors: m,
+		muxConn:  muxConn,
+	}
 }
 
 // Serve the monitoring page and upgrade the route `/ws` to websockets listening to the streams of monitoring information
 func (s *Srv) Serve(addr string) error {
-	s.muxConn = NewWriterMux()
 	for _, mon := range s.Monitors {
 		go mon.Wire(s.muxConn)
 	}
@@ -109,8 +75,10 @@ func (s *Srv) stats(w http.ResponseWriter, r *http.Request) {
 	for {
 		_, message, err := c.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+			if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
 				log.WithError(err).Debugln("closing websocket")
+			} else if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.WithError(err).Warnln("unexpected closing error")
 			}
 			break
 		}

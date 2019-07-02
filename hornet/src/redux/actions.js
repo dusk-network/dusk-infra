@@ -85,6 +85,7 @@ export const listenForUpdates = socket => dispatch => {
   ws.onerror = () => dispatch(connectionError());
   ws.onclose = () => dispatch(disconnected());
   ws.onmessage = ({ data }) => {
+    console.log(data)
     const payload = JSON.parse(JSON.parse(data)); // Todo: fix wrong json encoding from server
     console.log(payload);
 
@@ -103,9 +104,9 @@ export const listenForUpdates = socket => dispatch => {
         dispatch(updateDiskRead(parseInt(value), getTime(timestamp)));
         break;
       case "log":
-        const { code } = packet.data
+        const { code } = packet
         if(code && code === "round"){
-          const {round, blockHash, blockTime} = packet.data
+          const {round, blockHash, blockTime} = packet
 
           const block = { height: round, hash: blockHash, timestamp: timestamp }
           dispatch(updateLastBlockInfo(block));
@@ -114,9 +115,8 @@ export const listenForUpdates = socket => dispatch => {
         };
 
         if(code && code === "warn"){
-          // const {level, time, message, error=""} = packet.data
-          console.log("HERE")
-          dispatch(updateWarningList(packet.data, getTime(timestamp)))
+          const {time} = packet
+          dispatch(updateWarningList(packet.data, getTime(time)))
           break;
         }
 

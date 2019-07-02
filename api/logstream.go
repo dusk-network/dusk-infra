@@ -2,6 +2,7 @@ package logstream
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net"
 	"net/url"
@@ -20,8 +21,7 @@ var log = lg.WithField("process", "logstream")
 // Packets are json-encoded and are proxied to both the client and an aggregator. Ideally, it would use a stream multiplexer to abstract writers away but given its focus on being a simple channel for node logging, the complication of introducing an abstraction layer is  rather unnecessary
 // LogStreamMonitor implements the monitor.Mon interface
 type LogStreamMonitor struct {
-	srv net.Listener
-	// aggregator *url.URL
+	srv      net.Listener
 	ErrChan  chan error
 	quitChan chan struct{}
 	dataChan chan monitor.Param
@@ -29,6 +29,7 @@ type LogStreamMonitor struct {
 
 // New creates a new LogProxy from a host. The host should be a correct URL (such as unix:///path/to/unix.sock)
 func New(h *url.URL) *LogStreamMonitor {
+	fmt.Println("Listening on unix socket")
 	log.WithField("URL", h.String()).Debugln("starting logstream server")
 	srv, err := net.Listen(h.Scheme, h.Path)
 	if err != nil {
@@ -52,6 +53,7 @@ func (l *LogStreamMonitor) Shutdown() {
 // The Value field will be left empty and the `Metric` set to `log`
 func (l *LogStreamMonitor) Wire(w io.Writer) {
 
+	log.Debugln("wiring the logstream monitoring")
 	for {
 		conn, err := l.srv.Accept()
 		if err != nil {
@@ -61,8 +63,6 @@ func (l *LogStreamMonitor) Wire(w io.Writer) {
 		}
 
 		defer conn.Close()
-
-		// io.TeeReader()
 
 		d := json.NewDecoder(conn)
 		go l.receive(d)
