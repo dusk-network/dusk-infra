@@ -9,24 +9,31 @@ const options = {
   fullWidth: true,
   showArea: true,
   chartPadding: {
-    right: 40
+    right: 40,
   },
   high: 100,
   low: 0,
   showPoint: true,
   lineSmooth: true,
+  axisX: {
+    labelInterpolationFnc: function skipLabels(value, index, labels) {
+      if (index % 3 === 0) {
+        return index;
+      }
+    },
+  },
   classNames: {
     line: "cpu-line",
     point: "cpu-point",
-    area: "cpu-area"
-  }
+    area: "cpu-area",
+  },
 };
 
 const type = "Line";
 
 export default ({ data }) => (
   <>
-    <Title>CPU Load</Title>
+    <Title>CPU Load (%)</Title>
     <ResponsiveContainer>
       <ChartistGraph data={data} type={type} options={options} />
     </ResponsiveContainer>

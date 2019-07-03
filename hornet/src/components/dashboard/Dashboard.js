@@ -10,7 +10,16 @@ import clsx from "clsx";
 import React from "react";
 import { connect } from "react-redux";
 import logo from "../../d.svg";
-import { getCPUMetrics, getCurrentBlockInfo, getDiskMetrics, getLogMetrics, getMemoryMetrics, getNetMetrics, getTimeMetrics, getWarnings } from "../../redux/selectors";
+import {
+  getCPUMetrics,
+  getCurrentBlockInfo,
+  getDiskMetrics,
+  getLogMetrics,
+  getMemoryMetrics,
+  getNetMetrics,
+  getTimeMetrics,
+  getWarnings,
+} from "../../redux/selectors";
 import BlockCreated from "./BlockCreated";
 import BlockHeight from "./BlockHeight";
 import BlockTimeChart from "./BlockTimeChart";
@@ -43,52 +52,52 @@ const drawerWidth = 240;
 
 const useStyles = makeStyles(theme => ({
   root: {
-    display: "flex"
+    display: "flex",
   },
   toolbar: {
     paddingRight: 24, // keep right padding when drawer closed
-    whiteSpace: "pre-wrap"
   },
   toolbarIcon: {
     display: "flex",
     alignItems: "center",
     justifyContent: "flex-end",
     padding: "0 8px",
-    ...theme.mixins.toolbar
+    ...theme.mixins.toolbar,
   },
   appBar: {
     zIndex: theme.zIndex.drawer + 1,
     transition: theme.transitions.create(["width", "margin"], {
       easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.leavingScreen
-    })
+      duration: theme.transitions.duration.leavingScreen,
+    }),
   },
   appBarShift: {
     marginLeft: drawerWidth,
     width: `calc(100% - ${drawerWidth}px)`,
     transition: theme.transitions.create(["width", "margin"], {
       easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.enteringScreen
-    })
+      duration: theme.transitions.duration.enteringScreen,
+    }),
   },
   menuButton: {
-    marginRight: 36
+    marginRight: 36,
   },
   menuButtonHidden: {
-    display: "none"
+    display: "none",
   },
   D: {
     height: ".95em",
     marginRight: ".4em",
     paddingTop: 1,
-    alignSelf: "center"
+    alignSelf: "center",
   },
   title: {
     fontFamily: "Lato",
     textTransform: "uppercase",
     letterSpacing: ".5em",
     flexGrow: 1,
-    display: "flex"
+    display: "flex",
+    whiteSpace: "pre-wrap",
   },
   drawerPaper: {
     position: "relative",
@@ -96,39 +105,39 @@ const useStyles = makeStyles(theme => ({
     width: drawerWidth,
     transition: theme.transitions.create("width", {
       easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.enteringScreen
-    })
+      duration: theme.transitions.duration.enteringScreen,
+    }),
   },
   drawerPaperClose: {
     overflowX: "hidden",
     transition: theme.transitions.create("width", {
       easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.leavingScreen
+      duration: theme.transitions.duration.leavingScreen,
     }),
     width: theme.spacing(7),
     [theme.breakpoints.up("sm")]: {
-      width: theme.spacing(9)
-    }
+      width: theme.spacing(9),
+    },
   },
   appBarSpacer: theme.mixins.toolbar,
   content: {
     flexGrow: 1,
     height: "100vh",
-    overflow: "auto"
+    overflow: "auto",
   },
   container: {
     paddingTop: theme.spacing(4),
-    paddingBottom: theme.spacing(4)
+    paddingBottom: theme.spacing(4),
   },
   paper: {
     padding: theme.spacing(2),
     display: "flex",
     overflow: "auto",
-    flexDirection: "column"
+    flexDirection: "column",
   },
   fixedHeight: {
-    height: 240
-  }
+    height: 240,
+  },
 }));
 
 function Dashboard({
@@ -141,7 +150,7 @@ function Dashboard({
   log,
   score,
   cpu,
-  warnings
+  warnings,
 }) {
   const classes = useStyles();
   const [open, setOpen] = React.useState(false);
@@ -246,7 +255,7 @@ const mapStateToProps = state => ({
   net: getNetMetrics(state),
   disk: getDiskMetrics(state),
   memory: getMemoryMetrics(state),
-  warnings: getWarnings(state)
+  warnings: getWarnings(state),
 });
 
 export default connect(mapStateToProps)(Dashboard);

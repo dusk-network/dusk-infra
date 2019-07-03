@@ -2,44 +2,44 @@ import { ADD_NODE_UPDATE, ADD_REGION, CONNECTED, CONNECTING, CONNECTION_ERROR, D
 
 export const addNodeUpdate = payload => ({
   type: ADD_NODE_UPDATE,
-  payload
+  payload,
 });
 
 export const updateCPURead = (value, timestamp) => ({
   type: UPDATE_CPU_READ,
   value,
-  timestamp
+  timestamp,
 });
 
 export const updateNetRead = (value, timestamp) => ({
   type: UPDATE_NET_READ,
   value,
-  timestamp
+  timestamp,
 });
 
 export const updateDiskRead = (value, timestamp) => ({
   type: UPDATE_DISK_READ,
   value,
-  timestamp
+  timestamp,
 });
 
 export const updateLogRead = (value, timestamp) => ({
   type: UPDATE_LOG_READ,
   value,
-  timestamp
+  timestamp,
 });
 
 export const updateMemoryRead = (value, timestamp) => ({
   type: UPDATE_MEM_READ,
   value,
-  timestamp
+  timestamp,
 });
 
 export const updateBlockTimeRead = (value, timestamp) => ({
   type: UPDATE_TIME_READ,
   value,
-  timestamp
-})
+  timestamp,
+});
 
 export const updateWarningList = (value, timestamp) => ({
   type: UPDATE_WARN_LIST,
@@ -49,32 +49,32 @@ export const updateWarningList = (value, timestamp) => ({
 
 export const addRegion = payload => ({
   type: ADD_REGION,
-  payload
+  payload,
 });
 
 export const updateLastBlockInfo = payload => ({
   type: UPDATE_LAST_BLOCK_INFO,
-  payload
+  payload,
 });
 
 export const connecting = payload => ({
   type: CONNECTING,
-  payload
+  payload,
 });
 
 export const connected = payload => ({
   type: CONNECTED,
-  payload
+  payload,
 });
 
 export const connectionError = payload => ({
   type: CONNECTION_ERROR,
-  payload
+  payload,
 });
 
 export const disconnected = payload => ({
   type: DISCONNECTED,
-  payload
+  payload,
 });
 
 export const listenForUpdates = socket => dispatch => {
@@ -88,7 +88,7 @@ export const listenForUpdates = socket => dispatch => {
     // const payload = JSON.parse(JSON.parse(data)); // Todo: fix wrong json encoding from server
     const payload = JSON.parse(data)
 
-    const { metric, value, data:packet, timestamp } = payload;
+    const { metric, value, data: packet, timestamp } = payload;
     switch (metric) {
       case "cpu":
         dispatch(updateCPURead(parseFloat(value), getTime(timestamp)));
@@ -103,19 +103,23 @@ export const listenForUpdates = socket => dispatch => {
         dispatch(updateDiskRead(parseInt(value), getTime(timestamp)));
         break;
       case "log":
-        const { code } = packet
-        if(code && code === "round"){
-          const {round, blockHash, blockTime} = packet
+        const { code } = packet;
+        if (code && code === "round") {
+          const { round, blockHash, blockTime } = packet;
 
-          const block = { height: round, hash: blockHash, timestamp: timestamp }
+          const block = {
+            height: round,
+            hash: blockHash,
+            timestamp: timestamp,
+          };
           dispatch(updateLastBlockInfo(block));
           dispatch(updateBlockTimeRead(blockTime, getTime(timestamp)));
           break;
-        };
+        }
 
-        if(code && code === "warn"){
-          const {time} = packet
-          dispatch(updateWarningList(packet, getTime(time)))
+        if (code && code === "warn") {
+          const { time } = packet;
+          dispatch(updateWarningList(packet.data, getTime(time)));
           break;
         }
 

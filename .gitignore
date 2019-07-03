@@ -30,3 +30,4 @@ demo/**.*
 #Build byproducts
 build/
 hornet/build/
+node-monitor
