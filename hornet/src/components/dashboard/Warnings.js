@@ -32,7 +32,7 @@ export default function Nodes({ items = [] }) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {items.map(({ timestamp, warnings: { level, error="-", msg } }, index) => (
+          {items.map(({ timestamp, value: { level, error="-", msg } }, index) => (
             // let TR = trMap[level];
             <TableRow style={{color: `${styleMap[level]}`}} key={`${timestamp}-${index}`} >
               <TableCell style={{color: `${styleMap[level]}`}}>{timestamp}</TableCell>

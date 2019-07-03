@@ -119,7 +119,7 @@ export const listenForUpdates = socket => dispatch => {
 
         if (code && code === "warn") {
           const { time } = packet;
-          dispatch(updateWarningList(packet.data, getTime(time)));
+          dispatch(updateWarningList(packet, getTime(time)));
           break;
         }
 
