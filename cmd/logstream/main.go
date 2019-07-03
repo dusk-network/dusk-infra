@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -10,7 +11,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -39,7 +39,8 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 		}
 		j = strings.Trim(j, "\n")
-		switch j {
+		cmds := strings.Split(j, " ")
+		switch cmds[0] {
 		case "help":
 			help()
 		case "quit":
@@ -48,7 +49,7 @@ func main() {
 		case "block":
 			sendBlock(c)
 		case "log":
-			sendLog(j, c)
+			sendLog(cmds[1:], c)
 		default:
 			if len(strings.Trim(j, " ")) > 0 {
 				fmt.Fprintf(os.Stdout, "unrecognized command %s \n", j)
@@ -64,26 +65,29 @@ func help() {
 }
 
 func sendBlock(w io.Writer) {
-	t := time.Now()
 	msg := make([]byte, 64)
 	_, _ = rand.Read(msg)
 	blockHash := hex.EncodeToString(msg)
 	blockTime := rand.Float64()*3 + 3
 	round++
 
-	s := fmt.Sprintf(`{ "data": { "blockTime": %.2f, "blockHash": "%s", "round": %d, "timestamp": "%s" } }`, blockTime, blockHash, round, t.Format(time.RFC3339))
+	s := fmt.Sprintf(`{"code": "round", "blockTime": %.2f, "blockHash": "%s", "round": %d}`, blockTime, blockHash, round)
 	mwrite(s, w)
 }
 
-func sendLog(level string, w io.Writer) {
-	t := time.Now()
-	level = strings.Trim(level, " ")
-	timestamp := t.Format(time.RFC3339)
-	s := fmt.Sprintf(`{ "data"" { "error": "this is an error", level": "%s", "msg": "this is a mock message", "timestamp": "%s" } }`, level, timestamp)
+func sendLog(params []string, w io.Writer) {
+	level := "error"
+	if len(params) > 0 {
+		level = strings.Trim(params[0], " ")
+	}
+
+	s := fmt.Sprintf(`{"code": "warn", "error": "this is an error", "level": "%s", "msg": "this is a mock message"}`, level)
 	mwrite(s, w)
 }
 
 func mwrite(s string, w io.Writer) {
+	buf := bytes.NewBufferString(s)
+
 	mw := io.MultiWriter(w, os.Stdout)
-	fmt.Fprintln(mw, s)
+	fmt.Fprintln(mw, buf)
 }

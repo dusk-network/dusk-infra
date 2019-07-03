@@ -67,8 +67,10 @@ func (l *LogStreamMonitor) Wire(w io.Writer) {
 		d := json.NewDecoder(conn)
 		go l.receive(d)
 		for {
+			log.Debug("waiting for packet")
 			select {
 			case p := <-l.dataChan:
+				log.Debug("got packet")
 				param, err := json.Marshal(&p)
 				if err != nil {
 					log.WithError(err).Warnln("error in package reception")
@@ -77,10 +79,12 @@ func (l *LogStreamMonitor) Wire(w io.Writer) {
 				}
 
 				if _, err := w.Write(param); err != nil {
+					log.WithError(err).Warnln("exiting")
 					l.ErrChan <- err
 					return
 				}
 			case <-l.quitChan:
+				log.Warnln("quitting")
 				return
 			}
 		}

@@ -1,9 +1,11 @@
 package io
 
 import (
+	"encoding/json"
 	"sync"
 
 	lg "github.com/sirupsen/logrus"
+	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
 )
 
 var log = lg.WithField("process", "SynConn")
@@ -36,9 +38,17 @@ func New(w JsonReadWriter) *SynConn {
 func (s *SynConn) Write(b []byte) (int, error) {
 	s.Lock()
 	defer s.Unlock()
-	if err := s.WriteJSON(string(b)); err != nil {
+	//TODO: rather than re-encoding something already encoded, we might want to directly use a WriteJSON
+	p := &monitor.Param{}
+
+	if err := json.Unmarshal(b, p); err != nil {
 		return 0, err
 	}
+
+	if err := s.WriteJSON(p); err != nil {
+		return 0, err
+	}
+
 	return len(b), nil
 }
 

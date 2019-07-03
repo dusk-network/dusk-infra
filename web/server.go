@@ -28,7 +28,6 @@ type Srv struct {
 	Monitors []monitor.Mon
 	lock     sync.Mutex
 	muxConn  *mux.Writer
-	aw       *aggregator.Client
 }
 
 func New(m []monitor.Mon, a *aggregator.Client) *Srv {
