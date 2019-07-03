@@ -20,7 +20,6 @@ import (
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/aggregator"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/cpu"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/disk"
-	"gitlab.dusk.network/dusk-core/node-monitor/internal/latency"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/mem"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
 )
@@ -184,14 +183,14 @@ func initMonitors(c cfg) []monitor.Mon {
 		),
 	)
 
-	l := latency.New(c.latencyIP)
-	if err := l.(*latency.Latency).ProbePriviledges(); err == nil {
-		m := monitor.New(l, 10*time.Second, "latency")
-		mons = append(mons, m)
-	} else {
-		fmt.Println("Cannot setup the latency prober. Are you running with enough proviledges?")
-		os.Exit(3)
-	}
+	// l := latency.New(c.latencyIP)
+	// if err := l.(*latency.Latency).ProbePriviledges(); err == nil {
+	// 	m := monitor.New(l, 10*time.Second, "latency")
+	// 	mons = append(mons, m)
+	// } else {
+	// 	fmt.Println("Cannot setup the latency prober. Are you running with enough proviledges?")
+	// 	os.Exit(3)
+	// }
 
 	// if the logfile does not exist we don't add it to the processes
 	// if l := log.New(c.logfile); l != nil {

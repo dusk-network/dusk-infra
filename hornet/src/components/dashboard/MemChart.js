@@ -9,12 +9,15 @@ const options = {
   fullWidth: true,
   showArea: true,
   chartPadding: {
-    right: 40
+    right: 40,
   },
   high: 100,
   low: 0,
   showPoint: true,
-  lineSmooth: true
+  lineSmooth: true,
+  axisX: {
+    showLabel: false,
+  },
 };
 
 const type = "Line";
