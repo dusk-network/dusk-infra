@@ -111,6 +111,9 @@ func hndl(t *testing.T, expected string) func(http.ResponseWriter, *http.Request
 		if !assert.NotEmpty(t, alert.Ipv4) {
 			t.FailNow()
 		}
+		if !assert.NotEmpty(t, alert.Hostname) {
+			t.FailNow()
+		}
 		_, err := rw.Write([]byte("OK"))
 
 		if !assert.NoError(t, err) {

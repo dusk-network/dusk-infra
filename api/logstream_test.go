@@ -70,7 +70,8 @@ func await(t *testing.T, nl *logstream.LogStreamMonitor, d time.Duration) {
 	//giving enough time to the server to start
 	select {
 	case err := <-nl.ErrChan:
-		assert.FailNow(t, "%s\n", err)
+		fmt.Println(err)
+		assert.FailNow(t, "unexpected error")
 	case <-time.After(d):
 		return
 	}

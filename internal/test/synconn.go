@@ -2,7 +2,7 @@ package test
 
 import (
 	"bytes"
-	"errors"
+	"encoding/json"
 )
 
 type JsonReadWriter struct {
@@ -17,14 +17,21 @@ func NewWriter() *JsonReadWriter {
 }
 
 func (s *JsonReadWriter) WriteJSON(v interface{}) error {
-	// by, err := json.Marshal(v)
-	bys, ok := v.(string)
-	if !ok {
-		return errors.New("Please use string")
-	}
 
-	if _, err := s.Write([]byte(bys)); err != nil {
-		return err
+	switch v.(type) {
+	case string:
+		if _, err := s.Write([]byte(v.(string))); err != nil {
+			return err
+		}
+	default:
+		d, err := json.Marshal(v)
+		if err != nil {
+			return err
+		}
+
+		if _, err := s.Write([]byte(d)); err != nil {
+			return err
+		}
 	}
 
 	return nil

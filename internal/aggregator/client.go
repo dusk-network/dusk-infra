@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	lg "github.com/sirupsen/logrus"
@@ -82,14 +83,19 @@ func (c *Client) ReadMessage() (int, []byte, error) {
 }
 
 func (c *Client) send(payload string) {
-	var ipv4 string
+	var ipv4, hostname string
 	var err error
 	if ipv4, err = ip.Retrieve(); err != nil {
 		log.WithError(err).Warnln("cannot retrieve the IP of the machine")
 	}
+	hostname, err = os.Hostname()
+	if err != nil {
+		log.WithError(err).Warnln("cannot retrieve the hostname of the machine")
+	}
 	alert := &Alert{
-		Content: payload,
-		Ipv4:    ipv4,
+		Content:  payload,
+		Hostname: hostname,
+		Ipv4:     ipv4,
 	}
 	b := new(bytes.Buffer)
 	_ = json.NewEncoder(b).Encode(alert)
@@ -110,6 +116,7 @@ func (c *Client) send(payload string) {
 }
 
 type Alert struct {
-	Content string `json:"content"`
-	Ipv4    string `json:"ipv4"`
+	Content  string `json:"content"`
+	Ipv4     string `json:"ipv4"`
+	Hostname string `json:"hostname"`
 }
