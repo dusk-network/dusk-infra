@@ -16,15 +16,17 @@ import (
 )
 
 var lg = logrus.WithField("process", "logtail")
+var LinesToRetain = 10
 
 // LogProc is a convenience wrapper over a log file tailing
 type LogProc struct {
-	logFile  string
-	file     *os.File
-	lock     sync.RWMutex
-	closed   bool
-	QuitChan chan error
-	TailProc *tail.Tail
+	logFile   string
+	file      *os.File
+	lock      sync.RWMutex
+	closed    bool
+	QuitChan  chan error
+	TailProc  *tail.Tail
+	lastLines []*monitor.Param
 }
 
 // New creates a *LogProc
@@ -34,9 +36,10 @@ func New(logFile string) *LogProc {
 	}
 
 	s := &LogProc{
-		logFile:  logFile,
-		QuitChan: make(chan error, 1),
-		closed:   true,
+		logFile:   logFile,
+		QuitChan:  make(chan error, 1),
+		closed:    true,
+		lastLines: make([]*monitor.Param, 0, LinesToRetain),
 	}
 
 	if err := s.open(); err != nil {
@@ -65,58 +68,74 @@ func (l *LogProc) open() error {
 // panics if it fails to setup the Tail process. Otherwise it gracefully exits and writes the reason on the LogProc.QuitChan channel.
 // Note: since the process is blocking, it should run on a goroutine
 func (l *LogProc) Wire(w io.Writer) {
-	time.Sleep(5 * time.Second)
 	if err := l.open(); err != nil {
 		lg.WithError(err).Errorln(fmt.Sprintf("cannot start tailing log %s. Aborting", l.logFile))
 		return
 	}
 
 	r := bufio.NewReader(l.file)
-	if err := l.WriteLastLines(r, w, 10); err != nil {
-		lg.WithError(err).Errorln(fmt.Sprintf("cannot read last lines of the %s. Aborting", l.logFile))
+
+	if lines := l.FetchTail(r, LinesToRetain); lines != nil {
+		l.lastLines = lines
 	}
 
 	l.TailLog(w)
 }
 
-// Monitor simply writes a JSON stream to the writer
-func (l *LogProc) Monitor(w io.Writer, m *monitor.Param) error {
-	b, err := json.Marshal(m)
-	if err != nil {
-		return err
-	}
-	if _, err := w.Write(b); err != nil {
-		return err
-	}
-	return nil
-}
-
-// WriteTail writes the tail of a reader (i.e. a file) to a writer
-func (l *LogProc) WriteLastLines(r io.Reader, w io.Writer, nrLines int) error {
-	s := bufio.NewScanner(r)
-	lines := make([]string, 0)
-	for s.Scan() {
-		txt := s.Text()
-
-		if len(lines) == nrLines {
-			_, lines = lines[0], lines[1:]
+func (l *LogProc) InitialState(conn io.Writer) error {
+	for _, param := range l.lastLines {
+		if param == nil {
+			// the first nil signals that there aren't any more lines store (as lastLine is a queue with first elements being the most recent)
+			break
 		}
-
-		lines = append(lines, txt)
-
-	}
-
-	if err := s.Err(); err != nil && err != io.EOF {
-		return err
-	}
-
-	for _, line := range lines {
-		m := newParam(line)
-		if err := l.Monitor(w, m); err != nil {
+		if err := l.Monitor(conn, param); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// Monitor simply writes a JSON stream to the writer
+func (l *LogProc) Monitor(conn io.Writer, m *monitor.Param) error {
+
+	b, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+	if _, err := conn.Write(b); err != nil {
+		return err
+	}
+
+	// saving on the initial state for new incoming writers
+	if len(l.lastLines) > 0 && len(l.lastLines) < LinesToRetain {
+		_, l.lastLines = l.lastLines[0], l.lastLines[1:]
+		return nil
+	}
+
+	l.lastLines = append(l.lastLines, m)
+	return nil
+}
+
+// WriteTail writes the tail of a reader (i.e. a file) to a writer
+func (l *LogProc) FetchTail(r io.Reader, nrLines int) []*monitor.Param {
+	s := bufio.NewScanner(r)
+	lastLines := make([]*monitor.Param, 0, nrLines)
+	for s.Scan() {
+		txt := s.Text()
+		if len(lastLines) >= nrLines {
+			_, lastLines = lastLines[0], lastLines[1:]
+		}
+
+		p := newParam(txt)
+		lastLines = append(lastLines, p)
+	}
+
+	if err := s.Err(); err != nil && err != io.EOF {
+		lg.WithError(err).Warnln("could not fetch the log tail. Continuing without")
+		return []*monitor.Param{}
+	}
+
+	return lastLines
 }
 
 func (l *LogProc) IsOpen() bool {

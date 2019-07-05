@@ -27,26 +27,30 @@ var tlogs = []struct {
 	{"pippo\npluto\npaperino", 2, []string{"pluto", "paperino"}, nil},
 }
 
-func TestWriteLastLines(t *testing.T) {
+func TestFetchTail(t *testing.T) {
 	l := log.New("")
-	w := new(bytes.Buffer)
 	for _, tt := range tlogs {
 		test := bytes.NewBufferString(tt.msg)
-		err := l.WriteLastLines(test, w, tt.limit)
-		if tt.err != err {
-			assert.FailNow(t, "expected error %s but got %s", tt.err, err)
-			return
-		}
+		lines := l.FetchTail(test, tt.limit)
 
-		d := json.NewDecoder(w)
-		for _, v := range tt.values {
-			assert.NoError(t, testJsonReception(d, v))
+		for i, v := range tt.values {
+			if !assert.Equal(t, v, lines[i].Value) {
+				assert.FailNowf(t, "error in FetchTail from %s", tt.msg)
+			}
 		}
 	}
 }
 
 func TestMonitor(t *testing.T) {
-	l := log.New("")
+	tmpf, _ := ioutil.TempFile("", ".testlogtail.log")
+	fn := tmpf.Name()
+	defer os.Remove(fn)
+
+	if _, err := tmpf.Write([]byte("line 1\nline 2\n")); err != nil {
+		assert.FailNowf(t, "error in writing to tmp file: %s\n", err.Error())
+	}
+
+	l := log.New(fn)
 	r := new(bytes.Buffer)
 
 	test := "pippo"
