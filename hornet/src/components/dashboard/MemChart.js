@@ -1,12 +1,12 @@
-import React from "react";
 import { makeStyles } from "@material-ui/styles";
-import { ResponsiveContainer } from "recharts";
-
+import React from "react";
 import ChartistGraph from "react-chartist";
-
-import Title from "./Title";
-import LastUpdate from "./LastUpdate";
+import { ResponsiveContainer } from "recharts";
 import * as chartUtils from "../../chart-utils";
+import LastUpdate from "./LastUpdate";
+import Title from "./Title";
+
+
 
 const options = {
   fullWidth: true,

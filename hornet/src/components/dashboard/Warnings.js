@@ -5,6 +5,7 @@ import TableCell from "@material-ui/core/TableCell";
 import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import { makeStyles } from "@material-ui/styles";
+import { format } from 'date-fns';
 import React from "react";
 import Title from "./Title";
 
@@ -32,14 +33,18 @@ export default function Nodes({ items = [] }) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {items.map(({ timestamp, value: { level, error="-", msg } }, index) => (
+          {items.map(({ timestamp, value: { level, error="-", msg } }, index) => {
             // let TR = trMap[level];
+            const date = Date.parse(timestamp)
+            const formattedDate = format(date, 'ddd MMM dd YYYY @ HH:mm:ss.SSS').toUpperCase()
+            return (
             <TableRow style={{color: `${styleMap[level]}`}} key={`${timestamp}-${index}`} >
-              <TableCell style={{color: `${styleMap[level]}`}}>{timestamp}</TableCell>
+              <TableCell style={{color: `${styleMap[level]}`}}>{formattedDate}</TableCell>
               <TableCell style={{color: `${styleMap[level]}`}}>{error}</TableCell>
               <TableCell style={{color: `${styleMap[level]}`}}>{msg}</TableCell>
             </TableRow>
-          ))}
+            )
+          })}
         </TableBody>
       </Table>
     </>
