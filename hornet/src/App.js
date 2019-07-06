@@ -1,11 +1,4 @@
-import React, { useEffect } from "react";
-import Container from "@material-ui/core/Container";
-import Typography from "@material-ui/core/Typography";
-import Box from "@material-ui/core/Box";
-import ProTip from "./ProTip";
-import Link from "@material-ui/core/Link";
-import Dashboard from "./components/dashboard/Dashboard";
-import Socket from "./components/socket/Socket";
+import React from "react";
 // import React from "react";
 // import { connect } from "react-redux";
 // const mapStateToProps = state => {
@@ -22,8 +15,9 @@ import Socket from "./components/socket/Socket";
 // );
 // const List = connect(mapStateToProps)(ConnectedList);
 // export default List;
-
 import "./chartist.scss";
+import Dashboard from "./components/dashboard/Dashboard";
+import Socket from "./components/socket/Socket";
 export default function App({ listenForUpdates }) {
   return (
     <>

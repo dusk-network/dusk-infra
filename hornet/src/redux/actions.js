@@ -103,7 +103,7 @@ export const listenForUpdates = socket => dispatch => {
         dispatch(updateDiskRead(parseInt(value), getTime(timestamp)));
         break;
       case "log":
-        const { code } = packet;
+        const { code, level } = packet;
         if (code && code === "round") {
           const { round, blockHash, blockTime } = packet;
 
@@ -115,9 +115,9 @@ export const listenForUpdates = socket => dispatch => {
           dispatch(updateLastBlockInfo(block));
           dispatch(updateBlockTimeRead(blockTime, getTime(timestamp)));
           break;
-        }
-
-        if (code && code === "warn") {
+        } 
+        
+        if (level) {
           const { time } = packet;
           dispatch(updateWarningList(packet, getTime(time)));
           break;

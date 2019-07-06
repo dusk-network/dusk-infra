@@ -24,6 +24,7 @@ func New() *Writer {
 	}
 }
 
+// Write on the websocket
 func (mux *Writer) Write(b []byte) (int, error) {
 	if mux.Writer != nil {
 		return mux.Writer.Write(b)
@@ -32,6 +33,7 @@ func (mux *Writer) Write(b []byte) (int, error) {
 	return 0, nil
 }
 
+// Add a websocket and writes the initial state where appropriate
 func (mux *Writer) Add(jw j.JsonReadWriter) uint32 {
 	mux.Lock()
 	defer mux.Unlock()

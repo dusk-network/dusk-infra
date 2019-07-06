@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"encoding/json"
 	"io"
 	"time"
 
@@ -10,6 +11,14 @@ import (
 var log = lg.WithField("process", "monitor")
 
 type (
+	// StatefulMon is a monitoring process that carries an initial state
+	// to be communicated to new inbound connections
+	StatefulMon interface {
+		Mon
+		InitialState(io.Writer) error
+	}
+
+	// Mon is the monitoring process
 	Mon interface {
 		Wire(io.Writer)
 		Shutdown()
@@ -40,6 +49,14 @@ func NewParam(metric string) *Param {
 		Metric:    metric,
 		Data:      make(map[string]interface{}),
 	}
+}
+
+func (p *Param) String() string {
+	if b, err := json.Marshal(p); err == nil {
+		return string(b)
+	}
+
+	return ""
 }
 
 func New(s Supervisor, i time.Duration, metric string) *TickerMonitor {

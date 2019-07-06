@@ -58,7 +58,7 @@ func (s *Srv) Serve(addr string) error {
 
 func (s *Srv) stats(w http.ResponseWriter, r *http.Request) {
 	log := log.WithField("api", "stats")
-	log.Infoln("beginning upgrade")
+	log.Debugln("beginning upgrade")
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.WithError(err).Errorln("problem in upgrading the websocket")
@@ -67,6 +67,16 @@ func (s *Srv) stats(w http.ResponseWriter, r *http.Request) {
 
 	s.lock.Lock()
 	id := s.muxConn.Add(c)
+
+	for _, mon := range s.Monitors {
+		init, ok := mon.(monitor.StatefulMon)
+		if ok {
+			if err := init.InitialState(s.muxConn); err != nil {
+				log.WithError(err).Errorln("problem in initializing the process")
+				continue
+			}
+		}
+	}
 	s.lock.Unlock()
 
 	defer s.dispose(id, c)

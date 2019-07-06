@@ -70,7 +70,7 @@ func (l *LogStreamMonitor) Wire(w io.Writer) {
 			log.Debug("waiting for packet")
 			select {
 			case p := <-l.dataChan:
-				log.Debug("got packet")
+				log.Debugf("got packet: %s\n", p.String())
 				param, err := json.Marshal(&p)
 				if err != nil {
 					log.WithError(err).Warnln("error in package reception")
