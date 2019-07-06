@@ -1,30 +1,45 @@
 import React from "react";
-import PropTypes from "prop-types";
-import Typography from "@material-ui/core/Typography";
-import { makeStyles } from "@material-ui/styles";
+import { ResponsiveContainer } from "recharts";
+
+import AccessTimeIcon from "@material-ui/icons/AccessTime";
+import { makeStyles } from "@material-ui/core/styles";
 
 const useStyles = makeStyles(theme => ({
   root: {
-    textAlign: "center",
-    transform: "translateY(-100%)",
+    display: "flex",
+    "align-items": "center",
+    "text-align": "center",
+    "border-radius": "4px",
+    padding: "4px",
+    // color: "rgba(5, 68, 211)",
+    // background: "rgba(5, 68, 211, .1)",
+    textTransform: "uppercase",
   },
 }));
 
-export default function LastUpdate(props) {
+const formatTimestamp = timestamp => {
+  if (!timestamp) {
+    return "n/a";
+  }
+
+  const lastTimestampDate = new Date(timestamp);
+  const [weekday, month, day, year, time] = lastTimestampDate
+    .toString()
+    .split(" ");
+  const millis = lastTimestampDate.getMilliseconds();
+
+  return `${weekday} ${month} ${day} ${year} @ ${time}.${millis}`;
+};
+
+export default ({ timestamp, className }) => {
   const classes = useStyles();
 
   return (
-    <Typography
-      className={classes.root}
-      component="p"
-      variant="body2"
-      color="primary"
-    >
-      {props.children}
-    </Typography>
+    <>
+      <div title="Last Update" className={`${classes.root} ${className}`}>
+        <AccessTimeIcon style={{ marginRight: "4px" }} />
+        {formatTimestamp(timestamp)}
+      </div>
+    </>
   );
-}
-
-Description.propTypes = {
-  children: PropTypes.node,
 };
