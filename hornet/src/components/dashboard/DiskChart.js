@@ -11,7 +11,7 @@ const type = "Pie";
 
 export default ({ data }) => (
   <>
-    <Title>Disk Usage %</Title>
+    <Title>Disk Usage (%)</Title>
     <ResponsiveContainer>
       <ChartistGraph data={data} type={type} options={options} />
     </ResponsiveContainer>

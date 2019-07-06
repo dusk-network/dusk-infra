@@ -139,3 +139,13 @@ $ct-series-colors: (
   @extend .ct-point;
   stroke: #0544d3 !important;
 }
+
+.cpu-timestamp {
+  stroke: #0544d3;
+  fill: white;
+}
+
+.mem-timestamp {
+  stroke: #d70206;
+  fill: white;
+}

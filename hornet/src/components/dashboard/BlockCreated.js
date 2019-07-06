@@ -6,19 +6,14 @@ import { makeStyles } from "@material-ui/styles";
 import Typography from "@material-ui/core/Typography";
 import Title from "./Title";
 
-const useStyles = makeStyles(
-  theme => (
-    console.log(theme),
-    {
-      blockHash: {
-        flex: 1
-      },
-      blockHeight: {
-        padding: theme.spacing(2)
-      }
-    }
-  )
-);
+const useStyles = makeStyles(theme => ({
+  blockHash: {
+    flex: 1,
+  },
+  blockHeight: {
+    padding: theme.spacing(2),
+  },
+}));
 
 const fromNow = timestamp =>
   ((Date.now() - new Date(timestamp)) / 1000).toFixed(2) + "s ago";
