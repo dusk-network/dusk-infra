@@ -79,9 +79,7 @@ export const disconnected = payload => ({
 
 export const listenForUpdates = socket => dispatch => {
   dispatch(connecting());
-  const host = process.env.REACT_APP_HOST_WS
-  console.log(host)
-  let ws = new WebSocket(`ws:/${host}/stats`);
+  let ws = new WebSocket(`ws:/${window.location.host}/stats`);
 
   ws.onopen = () => dispatch(connected());
   ws.onerror = () => dispatch(connectionError());
