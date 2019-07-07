@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -122,8 +123,12 @@ func (c *Client) send(payload string) {
 	c.forward(b, "alert")
 }
 
-func (c *Client) forward(b *bytes.Buffer, endpoint string) {
-	req, _ := http.NewRequest("POST", c.uri.String()+"/"+endpoint, b)
+func (c *Client) forward(r io.Reader, endpoint string) {
+
+	tgt := c.uri.String() + "/" + endpoint
+	logger := new(bytes.Buffer)
+	tr := io.TeeReader(r, logger)
+	req, _ := http.NewRequest("POST", tgt, tr)
 	req.Header.Add("Authorization", c.token)
 	req.Header.Add("Content-type", "application/json; charset=utf-8")
 	res, err := c.httpclient.Do(req)
@@ -131,10 +136,18 @@ func (c *Client) forward(b *bytes.Buffer, endpoint string) {
 		log.WithError(err).Warnln("problems in posting to the aggregator")
 	}
 
-	_, err = ioutil.ReadAll(res.Body)
+	log.WithFields(lg.Fields{
+		"payload": logger.String(),
+		"url":     tgt,
+	}).Debugln("sending " + endpoint)
+
+	resp, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.WithError(err).Warnln("problems in reading the response")
+	} else {
+		log.WithField("response", string(resp)).Debugln(endpoint + " sent")
 	}
+
 	res.Body.Close()
 }
 
@@ -144,6 +157,7 @@ func (c *Client) sendUpdate() {
 		<-tick.C
 		b := new(bytes.Buffer)
 		c.lock.RLock()
+		log.WithField("status", c.status).Debugln("sending update")
 		_ = json.NewEncoder(b).Encode(c.status)
 		c.lock.RUnlock()
 		c.forward(b, "update")
@@ -165,5 +179,5 @@ type Status struct {
 	BlockTime string  `json:"blockTime"`
 	BlockHash string  `json:"blockHash"`
 	Latency   float32 `json:"latency"`
-	Mem       float32 `json:"mem"`
+	Mem       float32 `json:"memory"`
 }

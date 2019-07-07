@@ -67,7 +67,7 @@ func init() {
 		defaultWSAddress       = "localhost:8080"
 		defaultLatencyProberIP = "178.62.193.89"
 		defaultLogAddr         = "unix:///var/tmp/logmon.sock"
-		defaultAggroAddr       = "http://duskbert.dusk.network:6666"
+		defaultAggroAddr       = "https://duskbert.dusk.network"
 		WSAddrDesc             = "http service address"
 		latencyIPDesc          = "preferred voucher seeder"
 		logfileDesc            = "location of the node log file"
