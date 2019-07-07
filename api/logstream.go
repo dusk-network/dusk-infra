@@ -56,6 +56,7 @@ func (l *LogStreamMonitor) Wire(w io.Writer) {
 	log.Debugln("wiring the logstream monitoring")
 	for {
 		conn, err := l.srv.Accept()
+		log.Debugln("New incoming client")
 		if err != nil {
 			log.WithError(err).Warnln("error in creating the connection")
 			l.ErrChan <- err
@@ -64,30 +65,32 @@ func (l *LogStreamMonitor) Wire(w io.Writer) {
 
 		defer conn.Close()
 
-		d := json.NewDecoder(conn)
-		go l.receive(d)
-		for {
-			log.Debug("waiting for packet")
-			select {
-			case p := <-l.dataChan:
-				log.Debugf("got packet: %s\n", p.String())
-				param, err := json.Marshal(&p)
-				if err != nil {
-					log.WithError(err).Warnln("error in package reception")
-					l.ErrChan <- err
-					return
-				}
+		go func(c net.Conn) {
+			d := json.NewDecoder(c)
+			go l.receive(d)
+			for {
+				log.Debug("waiting for packet")
+				select {
+				case p := <-l.dataChan:
+					log.Debugf("got packet: %s\n", p.String())
+					param, err := json.Marshal(&p)
+					if err != nil {
+						log.WithError(err).Warnln("error in package reception")
+						l.ErrChan <- err
+						return
+					}
 
-				if _, err := w.Write(param); err != nil {
-					log.WithError(err).Warnln("exiting")
-					l.ErrChan <- err
+					if _, err := w.Write(param); err != nil {
+						log.WithError(err).Warnln("exiting")
+						l.ErrChan <- err
+						return
+					}
+				case <-l.quitChan:
+					log.Warnln("quitting")
 					return
 				}
-			case <-l.quitChan:
-				log.Warnln("quitting")
-				return
 			}
-		}
+		}(conn)
 	}
 }
 
