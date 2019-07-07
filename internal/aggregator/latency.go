@@ -17,6 +17,9 @@ func (c *Client) serializeLatency(p *monitor.Param) string {
 	if er != nil {
 		log.WithError(er).Warnln("latency processing reported error")
 	}
+	c.lock.Lock()
+	c.status.Latency = float32(v)
+	c.lock.Unlock()
 	if v > 150 {
 		return fmt.Sprintf("network too slow. Latency more than 150ms (%sms)", p.Value)
 	}

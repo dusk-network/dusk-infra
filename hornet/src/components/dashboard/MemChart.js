@@ -6,8 +6,6 @@ import * as chartUtils from "../../chart-utils";
 import LastUpdate from "./LastUpdate";
 import Title from "./Title";
 
-
-
 const options = {
   fullWidth: true,
   showArea: true,

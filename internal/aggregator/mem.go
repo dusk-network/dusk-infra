@@ -13,6 +13,7 @@ func (c *Client) serializeMem(p *monitor.Param) string {
 		log.WithError(err).Warnln("error in parsing the mem value")
 	}
 
+	c.status.Mem = float32(mem)
 	if mem > 80 {
 		return fmt.Sprintf("high memory usage (%s%%)", p.Value)
 	}

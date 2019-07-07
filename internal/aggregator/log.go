@@ -14,6 +14,11 @@ func (c *Client) serializeLog(p *monitor.Param) string {
 		round := p.Data["round"]
 		hash := p.Data["blockHash"]
 		time := p.Data["blockTime"]
+		c.lock.Lock()
+		c.status.BlockHash = hash.(string)
+		c.status.BlockTime = time.(string)
+		c.status.Round = round.(uint64)
+		c.lock.Unlock()
 
 		payload = fmt.Sprintf("new block validated: round %s, hash %s, block time %s", round, hash, time)
 	case "warn":

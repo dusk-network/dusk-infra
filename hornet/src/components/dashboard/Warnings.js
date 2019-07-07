@@ -30,18 +30,22 @@ export default function Nodes({ items = [] }) {
             <TableCell>Timestamp</TableCell>
             <TableCell>Error</TableCell>
             <TableCell>Message</TableCell>
+            <TableCell>Process</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {items.map(({ timestamp, value: { level, error="-", msg } }, index) => {
+          {items.map(({ timestamp, value: { process: comp, prefix, level, error="-", msg } }, index) => {
             // let TR = trMap[level];
+            const origin = comp ? comp : (prefix ? prefix : "")
+            const color = styleMap[level]
             const date = Date.parse(timestamp)
             const formattedDate = format(date, 'ddd MMM dd YYYY @ HH:mm:ss.SSS').toUpperCase()
             return (
-            <TableRow style={{color: `${styleMap[level]}`}} key={`${timestamp}-${index}`} >
-              <TableCell style={{color: `${styleMap[level]}`}}>{formattedDate}</TableCell>
-              <TableCell style={{color: `${styleMap[level]}`}}>{error}</TableCell>
-              <TableCell style={{color: `${styleMap[level]}`}}>{msg}</TableCell>
+            <TableRow style={{color: color}} key={`${timestamp}-${index}`} >
+              <TableCell style={{color: color}}>{formattedDate}</TableCell>
+              <TableCell style={{color: color}}>{error}</TableCell>
+              <TableCell style={{color: color}}>{msg}</TableCell>
+              <TableCell style={{color: color}}>{origin}</TableCell>
             </TableRow>
             )
           })}

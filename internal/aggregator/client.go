@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sync"
 	"time"
 
 	lg "github.com/sirupsen/logrus"
@@ -20,17 +21,42 @@ type Client struct {
 	uri        *url.URL
 	httpclient *http.Client
 	token      string
+	lock       sync.RWMutex
+	status     *Status
 }
 
 func New(uri *url.URL, token string) *Client {
+	var err error
+	var hostname, ipv4 string
+	// tr := &http.Transport{
+	//     TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	// }
 	client := &http.Client{
+		// Transport: tr,
 		Timeout: 10 * time.Second,
 	}
-	return &Client{
+
+	ipv4, err = ip.Retrieve()
+	if err != nil {
+		panic(err)
+	}
+
+	hostname, err = os.Hostname()
+	if err != nil {
+		panic(err)
+	}
+
+	hc := &Client{
 		uri:        uri,
 		httpclient: client,
 		token:      token,
+		status: &Status{
+			Ipv4:     ipv4,
+			Hostname: hostname,
+		},
 	}
+	go hc.sendUpdate()
+	return hc
 }
 
 func (c *Client) WriteJSON(v interface{}) error {
@@ -83,24 +109,18 @@ func (c *Client) ReadMessage() (int, []byte, error) {
 }
 
 func (c *Client) send(payload string) {
-	var ipv4, hostname string
-	var err error
-	if ipv4, err = ip.Retrieve(); err != nil {
-		log.WithError(err).Warnln("cannot retrieve the IP of the machine")
-	}
-	hostname, err = os.Hostname()
-	if err != nil {
-		log.WithError(err).Warnln("cannot retrieve the hostname of the machine")
-	}
 	alert := &Alert{
 		Content:  payload,
-		Hostname: hostname,
-		Ipv4:     ipv4,
+		Hostname: c.status.Hostname,
+		Ipv4:     c.status.Ipv4,
 	}
 	b := new(bytes.Buffer)
 	_ = json.NewEncoder(b).Encode(alert)
+	c.forward(b, "alert")
+}
 
-	req, _ := http.NewRequest("POST", c.uri.String(), b)
+func (c *Client) forward(b *bytes.Buffer, endpoint string) {
+	req, _ := http.NewRequest("POST", c.uri.String()+endpoint, b)
 	req.Header.Add("Authorization", c.token)
 	req.Header.Add("Content-type", "application/json; charset=utf-8")
 	res, err := c.httpclient.Do(req)
@@ -115,8 +135,32 @@ func (c *Client) send(payload string) {
 	res.Body.Close()
 }
 
+func (c *Client) sendUpdate() {
+	tick := time.NewTicker(20 * time.Second)
+	for {
+		<-tick.C
+		b := new(bytes.Buffer)
+		c.lock.RLock()
+		_ = json.NewEncoder(b).Encode(c.status)
+		c.lock.RUnlock()
+		c.forward(b, "update")
+	}
+}
+
 type Alert struct {
 	Content  string `json:"content"`
 	Ipv4     string `json:"ipv4"`
 	Hostname string `json:"hostname"`
+}
+
+type Status struct {
+	Ipv4      string  `json:"ipv4"`
+	Hostname  string  `json:"hostname"`
+	CPU       float32 `json:"cpu"`
+	Disk      float32 `json:"disk"`
+	Round     uint64  `json:"height"`
+	BlockTime string  `json:"blockTime"`
+	BlockHash string  `json:"blockHash"`
+	Latency   float32 `json:"latency"`
+	Mem       float32 `json:"mem"`
 }

@@ -118,7 +118,7 @@ export const listenForUpdates = socket => dispatch => {
         } 
         
         if (level) {
-          const { time } = packet;
+          const { time=timestamp } = packet;
           dispatch(updateWarningList(packet, getTime(time)));
           break;
         }

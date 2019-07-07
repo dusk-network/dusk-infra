@@ -81,7 +81,7 @@ func sendLog(params []string, w io.Writer) {
 		level = strings.Trim(params[0], " ")
 	}
 
-	s := fmt.Sprintf(`{"code": "warn", "error": "this is an error", "level": "%s", "msg": "this is a mock message"}`, level)
+	s := fmt.Sprintf(`{"code": "warn", "process": "logstream", "error": "this is an error", "level": "%s", "msg": "this is a mock message"}`, level)
 	mwrite(s, w)
 }
 
