@@ -2,10 +2,10 @@ package logstream
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net"
 	"net/url"
+	"os"
 	"time"
 
 	lg "github.com/sirupsen/logrus"
@@ -29,11 +29,14 @@ type LogStreamMonitor struct {
 
 // New creates a new LogProxy from a host. The host should be a correct URL (such as unix:///path/to/unix.sock)
 func New(h *url.URL) *LogStreamMonitor {
-	fmt.Println("Listening on unix socket")
 	log.WithField("URL", h.String()).Debugln("starting logstream server")
 	srv, err := net.Listen(h.Scheme, h.Path)
 	if err != nil {
-		log.Panic(err)
+		_ = os.Remove(h.Path)
+		srv, err = net.Listen(h.Scheme, h.Path)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return &LogStreamMonitor{

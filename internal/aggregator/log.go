@@ -16,7 +16,9 @@ func (c *Client) serializeLog(p *monitor.Param) string {
 		time := p.Data["blockTime"]
 		c.lock.Lock()
 		c.status.BlockHash = hash.(string)
-		c.status.BlockTime = time.(string)
+		if time != nil {
+			c.status.BlockTime = time.(string)
+		}
 		c.status.Round = uint64(round.(float64))
 		c.lock.Unlock()
 
