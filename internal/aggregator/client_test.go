@@ -52,10 +52,10 @@ var tt = []struct {
 		newP("log", "", map[string]interface{}{
 			"code":      "round",
 			"blockHash": "pippo",
-			"round":     "pluto",
-			"blockTime": "4ms",
+			"round":     uint64(4),
+			"blockTime": "4",
 		}),
-		"new block validated: round pluto, hash pippo, block time 4ms",
+		"new block validated: round 4, hash pippo, block time 4ms",
 	},
 	{
 		newP("log", "", map[string]interface{}{
@@ -75,7 +75,7 @@ func TestClient(t *testing.T) {
 }
 
 func fireSrv(t *testing.T, param *monitor.Param, fn func(http.ResponseWriter, *http.Request)) {
-	srv := httptest.NewServer(http.HandlerFunc(fn))
+	srv := httptest.NewTLSServer(http.HandlerFunc(fn))
 	defer srv.Close()
 
 	uri, err := url.Parse(srv.URL)

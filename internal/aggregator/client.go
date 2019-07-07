@@ -2,6 +2,7 @@ package aggregator
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -28,12 +29,14 @@ type Client struct {
 func New(uri *url.URL, token string) *Client {
 	var err error
 	var hostname, ipv4 string
-	// tr := &http.Transport{
-	//     TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	// }
 	client := &http.Client{
-		// Transport: tr,
 		Timeout: 10 * time.Second,
+	}
+	if uri.Scheme == "https" {
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		client.Transport = tr
 	}
 
 	ipv4, err = ip.Retrieve()
@@ -120,7 +123,7 @@ func (c *Client) send(payload string) {
 }
 
 func (c *Client) forward(b *bytes.Buffer, endpoint string) {
-	req, _ := http.NewRequest("POST", c.uri.String()+endpoint, b)
+	req, _ := http.NewRequest("POST", c.uri.String()+"/"+endpoint, b)
 	req.Header.Add("Authorization", c.token)
 	req.Header.Add("Content-type", "application/json; charset=utf-8")
 	res, err := c.httpclient.Do(req)
