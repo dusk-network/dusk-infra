@@ -2,16 +2,12 @@ import { makeStyles } from "@material-ui/core/styles";
 import AccessTimeIcon from "@material-ui/icons/AccessTime";
 import React from "react";
 
-
 const useStyles = makeStyles(theme => ({
   root: {
     display: "flex",
     "align-items": "center",
     "text-align": "center",
     "border-radius": "4px",
-    padding: "4px",
-    // color: "rgba(5, 68, 211)",
-    // background: "rgba(5, 68, 211, .1)",
     textTransform: "uppercase",
   },
 }));
