@@ -6,8 +6,6 @@ const useStyles = makeStyles(theme => ({
   root: {
     display: "flex",
     "align-items": "center",
-    "text-align": "center",
-    "border-radius": "4px",
     textTransform: "uppercase",
   },
 }));

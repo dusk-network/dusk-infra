@@ -20,6 +20,7 @@
     "react-dom": "latest",
     "react-redux": "^7.0.2",
     "react-scripts": "latest",
+    "react-virtualized": "^9.21.1",
     "recharts": "^1.5.0",
     "redux": "^4.0.1",
     "redux-thunk": "^2.3.0",
