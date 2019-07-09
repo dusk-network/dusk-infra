@@ -2,25 +2,23 @@ import Chartist from "chartist";
 
 const lz = (num, length = 2) => String(num).padStart(length, "0");
 const step = (index, length) => {
-  if (index > 0 && index < length - 1 && index % Math.round(length / 3) === 0) {
+  if (index > 0 && index < length - 1 && index === Math.floor(length / 2)) {
     return true;
   }
   return false;
 };
 
-export const listener = className => ({
+export const listener = stroke => ({
   draw(data) {
     if (data.type === "point" && step(data.index, data.series.length)) {
       data.group.append(
-        new Chartist.Svg(
-          "circle",
-          {
-            cx: data.x,
-            cy: data.y,
-            r: 4,
-          },
-          className
-        )
+        new Chartist.Svg("circle", {
+          cx: data.x,
+          cy: data.y,
+          r: 4,
+          fill: "white",
+          stroke,
+        })
       );
     }
   },

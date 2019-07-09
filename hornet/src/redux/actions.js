@@ -1,4 +1,19 @@
-import { ADD_NODE_UPDATE, ADD_REGION, CONNECTED, CONNECTING, CONNECTION_ERROR, DISCONNECTED, UPDATE_CPU_READ, UPDATE_DISK_READ, UPDATE_LAST_BLOCK_INFO, UPDATE_LOG_READ, UPDATE_MEM_READ, UPDATE_NET_READ, UPDATE_TIME_READ, UPDATE_WARN_LIST } from "./action-types";
+import {
+  ADD_NODE_UPDATE,
+  ADD_REGION,
+  CONNECTED,
+  CONNECTING,
+  CONNECTION_ERROR,
+  DISCONNECTED,
+  UPDATE_CPU_READ,
+  UPDATE_DISK_READ,
+  UPDATE_LAST_BLOCK_INFO,
+  UPDATE_LOG_READ,
+  UPDATE_MEM_READ,
+  UPDATE_NET_READ,
+  UPDATE_TIME_READ,
+  UPDATE_WARN_LIST,
+} from "./action-types";
 
 export const addNodeUpdate = payload => ({
   type: ADD_NODE_UPDATE,
@@ -44,8 +59,8 @@ export const updateBlockTimeRead = (value, timestamp) => ({
 export const updateWarningList = (value, timestamp) => ({
   type: UPDATE_WARN_LIST,
   value,
-  timestamp
-})
+  timestamp,
+});
 
 export const addRegion = payload => ({
   type: ADD_REGION,
@@ -79,14 +94,15 @@ export const disconnected = payload => ({
 
 export const listenForUpdates = socket => dispatch => {
   dispatch(connecting());
-  let ws = new WebSocket(`ws:/${window.location.host}/stats`);
+  const host = process.env.REACT_APP_HOST_WS || window.location.host;
+  let ws = new WebSocket(`ws:/${host}/stats`);
 
   ws.onopen = () => dispatch(connected());
   ws.onerror = () => dispatch(connectionError());
   ws.onclose = () => dispatch(disconnected());
   ws.onmessage = ({ data }) => {
     // const payload = JSON.parse(JSON.parse(data)); // Todo: fix wrong json encoding from server
-    const payload = JSON.parse(data)
+    const payload = JSON.parse(data);
 
     const { metric, value, data: packet, timestamp } = payload;
     switch (metric) {
@@ -115,10 +131,10 @@ export const listenForUpdates = socket => dispatch => {
           dispatch(updateLastBlockInfo(block));
           dispatch(updateBlockTimeRead(blockTime, getTime(timestamp)));
           break;
-        } 
-        
+        }
+
         if (level) {
-          const { time=timestamp } = packet;
+          const { time = timestamp } = packet;
           dispatch(updateWarningList(packet, getTime(time)));
           break;
         }

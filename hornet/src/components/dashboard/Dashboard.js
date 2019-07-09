@@ -28,7 +28,6 @@ import DiskChart from "./DiskChart";
 import LogFile from "./LogFile";
 import MemChart from "./MemChart";
 import NetLatencyChart from "./NetLatencyChart";
-import Nodes from "./Nodes";
 import Warnings from "./Warnings";
 
 const logify = (text, { D }) => {
@@ -138,6 +137,9 @@ const useStyles = makeStyles(theme => ({
   fixedHeight: {
     height: 240,
   },
+  noScrolling: {
+    overflow: "hidden",
+  },
 }));
 
 function Dashboard({
@@ -161,6 +163,10 @@ function Dashboard({
     setOpen(false);
   };
   const fixedHeightPaper = clsx(classes.paper, classes.fixedHeight);
+  const fixedHeightPaperNoScrollig = clsx(
+    fixedHeightPaper,
+    classes.noScrolling
+  );
 
   return (
     <div className={classes.root}>
@@ -196,45 +202,37 @@ function Dashboard({
                 <BlockCreated timestamp={lastBlock.timestamp} />
               </Paper>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={9}>
               <Paper className={fixedHeightPaper}>
                 <BlockTimeChart data={blockTime} />
               </Paper>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <Paper className={fixedHeightPaper}>
-                <NetLatencyChart data={net} />
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Paper className={fixedHeightPaper}>
-                <CPUChart data={cpu} />
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Paper className={fixedHeightPaper}>
-                <MemChart data={memory} />
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Paper className={fixedHeightPaper}>
-                {/* <HighestBlockChart data={score} /> */}
-                {/* Error lists to be added to a board to be less ephemeral */}
-                <Warnings items={warnings} />
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={3}>
               <Paper className={fixedHeightPaper}>
                 <DiskChart data={disk} />
               </Paper>
             </Grid>
-            <Grid item xs={24} sm={12}>
-              <Paper className={fixedHeightPaper}>
-                <LogFile items={log} />
+            <Grid item xs={12} sm={4}>
+              <Paper className={fixedHeightPaperNoScrollig}>
+                <NetLatencyChart data={net} />
+              </Paper>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Paper className={fixedHeightPaperNoScrollig}>
+                <CPUChart data={cpu} />
+              </Paper>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Paper className={fixedHeightPaperNoScrollig}>
+                <MemChart data={memory} />
               </Paper>
             </Grid>
             <Grid item xs={12}>
-              <Nodes items={items} />
+              {/* Error lists to be added to a board to be less ephemeral */}
+              <Warnings items={warnings} />
+            </Grid>
+            <Grid item xs={12}>
+              <LogFile items={log} />
             </Grid>
           </Grid>
         </Container>

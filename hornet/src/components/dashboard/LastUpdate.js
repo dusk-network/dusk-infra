@@ -2,16 +2,10 @@ import { makeStyles } from "@material-ui/core/styles";
 import AccessTimeIcon from "@material-ui/icons/AccessTime";
 import React from "react";
 
-
 const useStyles = makeStyles(theme => ({
   root: {
     display: "flex",
     "align-items": "center",
-    "text-align": "center",
-    "border-radius": "4px",
-    padding: "4px",
-    // color: "rgba(5, 68, 211)",
-    // background: "rgba(5, 68, 211, .1)",
     textTransform: "uppercase",
   },
 }));
@@ -30,12 +24,16 @@ const formatTimestamp = timestamp => {
   return `${weekday} ${month} ${day} ${year} @ ${time}.${millis}`;
 };
 
-export default ({ timestamp, className }) => {
+export default ({ timestamp, className, style }) => {
   const classes = useStyles();
 
   return (
     <>
-      <div title="Last Update" className={`${classes.root} ${className}`}>
+      <div
+        title="Last Update"
+        className={`${classes.root} ${className}`}
+        style={style}
+      >
         <AccessTimeIcon style={{ marginRight: "4px" }} />
         {formatTimestamp(timestamp)}
       </div>

@@ -107,16 +107,15 @@ func (l *LogProc) Monitor(conn io.Writer, m *monitor.Param) error {
 	}
 
 	// saving on the initial state for new incoming writers
-	if len(l.lastLines) > 0 && len(l.lastLines) < LinesToRetain {
+	if len(l.lastLines) > 0 {
 		_, l.lastLines = l.lastLines[0], l.lastLines[1:]
-		return nil
 	}
 
 	l.lastLines = append(l.lastLines, m)
 	return nil
 }
 
-// WriteTail writes the tail of a reader (i.e. a file) to a writer
+// FetchTail writes the tail of a reader (i.e. a file) to a writer
 func (l *LogProc) FetchTail(r io.Reader, nrLines int) []*monitor.Param {
 	s := bufio.NewScanner(r)
 	lastLines := make([]*monitor.Param, 0, nrLines)

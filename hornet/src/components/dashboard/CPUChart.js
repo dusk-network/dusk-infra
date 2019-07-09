@@ -9,6 +9,8 @@ import Title from "./Title";
 import LastUpdate from "./LastUpdate";
 import * as chartUtils from "../../chart-utils";
 
+const MAIN_COLOR = "#0544d3";
+
 const options = {
   fullWidth: true,
   showArea: true,
@@ -29,30 +31,20 @@ const options = {
   },
 };
 
-const type = "Line";
-const useStyles = makeStyles(theme => ({
-  lastUpdate: {
-    color: "#0544d3",
-  },
-}));
-
-export default ({ data }) => {
-  const classes = useStyles();
-  return (
-    <>
-      <Title>CPU Load (%)</Title>
-      <ResponsiveContainer>
-        <ChartistGraph
-          data={data}
-          type={type}
-          options={options}
-          listener={chartUtils.listener("cpu-timestamp")}
-        />
-      </ResponsiveContainer>
-      <LastUpdate
-        timestamp={data.labels[data.labels.length - 1]}
-        className={classes.lastUpdate}
+export default ({ data }) => (
+  <>
+    <Title>CPU Load (%)</Title>
+    <ResponsiveContainer>
+      <ChartistGraph
+        data={data}
+        type={"Line"}
+        options={options}
+        listener={chartUtils.listener(MAIN_COLOR)}
       />
-    </>
-  );
-};
+    </ResponsiveContainer>
+    <LastUpdate
+      timestamp={data.labels[data.labels.length - 1]}
+      style={{ color: MAIN_COLOR }}
+    />
+  </>
+);
