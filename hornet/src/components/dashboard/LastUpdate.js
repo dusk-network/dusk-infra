@@ -24,12 +24,16 @@ const formatTimestamp = timestamp => {
   return `${weekday} ${month} ${day} ${year} @ ${time}.${millis}`;
 };
 
-export default ({ timestamp, className }) => {
+export default ({ timestamp, className, style }) => {
   const classes = useStyles();
 
   return (
     <>
-      <div title="Last Update" className={`${classes.root} ${className}`}>
+      <div
+        title="Last Update"
+        className={`${classes.root} ${className}`}
+        style={style}
+      >
         <AccessTimeIcon style={{ marginRight: "4px" }} />
         {formatTimestamp(timestamp)}
       </div>

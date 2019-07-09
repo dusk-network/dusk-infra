@@ -125,32 +125,44 @@ $ct-series-colors: (
   #a748ca
 ) !default;
 
-.cpu-line {
+.cpu-line,
+.net-line,
+.block-line {
   @extend .ct-line;
-  stroke: #0544d3 !important;
 }
 
-.cpu-area {
+.cpu-area,
+.net-area,
+.block-area {
   @extend .ct-area;
+}
+
+.cpu-point,
+.net-point,
+.block-point {
+  @extend .ct-point;
+}
+
+.cpu-line,
+.cpu-point {
+  stroke: #0544d3 !important;
+}
+.cpu-area {
   fill: #0544d3 !important;
 }
 
-.cpu-point {
-  @extend .ct-point;
-  stroke: #0544d3 !important;
+.block-line,
+.block-point {
+  stroke: #523b97 !important;
+}
+.block-area {
+  fill: #523b97 !important;
 }
 
-.netlatency-timestamp {
-  stroke: #d70206;
-  fill: white;
+.net-line,
+.net-point {
+  stroke: #01b38b !important;
 }
-
-.cpu-timestamp {
-  stroke: #0544d3;
-  fill: white;
-}
-
-.mem-timestamp {
-  stroke: #d70206;
-  fill: white;
+.net-area {
+  fill: #01b38b !important;
 }

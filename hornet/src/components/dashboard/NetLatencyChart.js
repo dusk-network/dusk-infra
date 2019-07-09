@@ -1,4 +1,3 @@
-import { makeStyles } from "@material-ui/styles";
 import React from "react";
 import ChartistGraph from "react-chartist";
 import { ResponsiveContainer } from "recharts";
@@ -6,45 +5,42 @@ import * as chartUtils from "../../chart-utils";
 import LastUpdate from "./LastUpdate";
 import Title from "./Title";
 
+const MAIN_COLOR = "#01b38b";
+
 const options = {
   fullWidth: true,
   showArea: true,
   chartPadding: {
-    right: 40
+    right: 40,
   },
   high: 100,
   low: 0,
   showPoint: true,
   lineSmooth: true,
+  classNames: {
+    line: "net-line",
+    point: "net-point",
+    area: "net-area",
+  },
   axisX: {
     labelInterpolationFnc: chartUtils.skipLabels,
-  }
+  },
 };
 
-const type = "Line";
-const useStyles = makeStyles(theme => ({
-  lastUpdate: {
-    color: "#D70206",
-  },
-}));
-
-export default ({ data }) => {
-  const classes = useStyles();
-  return (
+export default ({ data }) => (
   <>
     <Title>Network Latency</Title>
     <ResponsiveContainer>
-      <ChartistGraph 
-        data={data} 
-        type={type} 
-        options={options} 
-        listener={chartUtils.listener("netlatency-timestamp")}
+      <ChartistGraph
+        data={data}
+        type={"Line"}
+        options={options}
+        listener={chartUtils.listener(MAIN_COLOR)}
       />
     </ResponsiveContainer>
     <LastUpdate
       timestamp={data.labels[data.labels.length - 1]}
-      className={classes.lastUpdate}
+      style={{ color: MAIN_COLOR }}
     />
   </>
-  )
-};
+);

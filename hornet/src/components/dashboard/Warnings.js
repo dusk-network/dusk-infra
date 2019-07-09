@@ -136,7 +136,11 @@ MuiVirtualizedTable.propTypes = {
 
 const VirtualizedTable = withStyles(styles)(MuiVirtualizedTable);
 
-const parseItem = ({ value, timestamp: time }, id) => ({ id, time, ...value });
+const parseItem = ({ value, timestamp }, id) => ({
+  id,
+  time: new Date(timestamp).toISOString(),
+  ...value,
+});
 
 export default React.memo(({ items }) => {
   const rows = items.map(parseItem);

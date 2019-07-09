@@ -1,10 +1,11 @@
-import { makeStyles } from "@material-ui/styles";
 import React from "react";
 import ChartistGraph from "react-chartist";
 import { ResponsiveContainer } from "recharts";
 import * as chartUtils from "../../chart-utils";
 import LastUpdate from "./LastUpdate";
 import Title from "./Title";
+
+const MAIN_COLOR = "#D70206";
 
 const options = {
   fullWidth: true,
@@ -21,31 +22,20 @@ const options = {
   },
 };
 
-const type = "Line";
-const useStyles = makeStyles(theme => ({
-  lastUpdate: {
-    color: "#D70206",
-  },
-}));
-
-export default ({ data }) => {
-  const classes = useStyles();
-
-  return (
-    <>
-      <Title>Memory Usage (%)</Title>
-      <ResponsiveContainer>
-        <ChartistGraph
-          data={data}
-          type={type}
-          options={options}
-          listener={chartUtils.listener("mem-timestamp")}
-        />
-      </ResponsiveContainer>
-      <LastUpdate
-        timestamp={data.labels[data.labels.length - 1]}
-        className={classes.lastUpdate}
+export default ({ data }) => (
+  <>
+    <Title>Memory Usage (%)</Title>
+    <ResponsiveContainer>
+      <ChartistGraph
+        data={data}
+        type={"Line"}
+        options={options}
+        listener={chartUtils.listener(MAIN_COLOR)}
       />
-    </>
-  );
-};
+    </ResponsiveContainer>
+    <LastUpdate
+      timestamp={data.labels[data.labels.length - 1]}
+      style={{ color: MAIN_COLOR }}
+    />
+  </>
+);
