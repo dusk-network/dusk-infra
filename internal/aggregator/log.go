@@ -6,10 +6,11 @@ import (
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
 )
 
-func (c *Client) serializeLog(p *monitor.Param) string {
+func (c *Client) serializeLog(p *monitor.Param) (string, string) {
 	var payload string
+	code := p.Data["code"]
 
-	switch p.Data["code"] {
+	switch code {
 	case "round":
 		round := p.Data["round"]
 		hash := p.Data["blockHash"]
@@ -17,7 +18,12 @@ func (c *Client) serializeLog(p *monitor.Param) string {
 		c.lock.Lock()
 		c.status.BlockHash = hash.(string)
 		if time != nil {
-			c.status.BlockTime = time.(string)
+			switch time.(type) {
+			case string:
+				c.status.BlockTime = time.(string)
+			case float64:
+				c.status.BlockTime = fmt.Sprintf("%.2f", time.(float64))
+			}
 		}
 		c.status.Round = uint64(round.(float64))
 		c.lock.Unlock()
@@ -29,5 +35,5 @@ func (c *Client) serializeLog(p *monitor.Param) string {
 		payload = fmt.Sprintf("[%s] %s", level, msg)
 	}
 
-	return payload
+	return code.(string), payload
 }

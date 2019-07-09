@@ -1,10 +1,12 @@
 /* eslint-disable no-script-url */
 
-import React from "react";
-import Link from "@material-ui/core/Link";
-import { makeStyles } from "@material-ui/styles";
 import Typography from "@material-ui/core/Typography";
+import { makeStyles } from "@material-ui/styles";
+import React from "react";
+import LastUpdate from './LastUpdate';
 import Title from "./Title";
+
+const MAIN_COLOR = "rgba(0, 0, 0, 0.54)";
 
 const useStyles = makeStyles(theme => ({
   blockHash: {
@@ -28,9 +30,12 @@ export default React.memo(({ timestamp }) => {
           {timestamp ? fromNow(timestamp) : "n/a"}
         </time>
       </Typography>
-      <Typography color="textSecondary" noWrap className={classes.blockHash}>
-        <time dateTime={timestamp}>{timestamp || "n/a"}</time>
-      </Typography>
+      <LastUpdate
+      timestamp={timestamp}
+      style={{ color: MAIN_COLOR }}
+      />
+      {/* <Typography color="textSecondary" noWrap className={classes.blockHash}>
+      </Typography> */}
     </>
   );
 });

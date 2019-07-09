@@ -10,16 +10,7 @@ import clsx from "clsx";
 import React from "react";
 import { connect } from "react-redux";
 import logo from "../../d.svg";
-import {
-  getCPUMetrics,
-  getCurrentBlockInfo,
-  getDiskMetrics,
-  getLogMetrics,
-  getMemoryMetrics,
-  getNetMetrics,
-  getTimeMetrics,
-  getWarnings,
-} from "../../redux/selectors";
+import { getCPUMetrics, getCurrentBlockInfo, getDiskMetrics, getLogMetrics, getMemoryMetrics, getNetMetrics, getTimeMetrics, getWarnings } from "../../redux/selectors";
 import BlockCreated from "./BlockCreated";
 import BlockHeight from "./BlockHeight";
 import BlockTimeChart from "./BlockTimeChart";
@@ -168,6 +159,9 @@ function Dashboard({
     classes.noScrolling
   );
 
+  const fullHost = process.env.REACT_APP_HOST_WS || window.location.host
+  const [host, ...rest]= fullHost.split(":")
+
   return (
     <div className={classes.root}>
       <CssBaseline />
@@ -183,7 +177,7 @@ function Dashboard({
             noWrap
             className={classes.title}
           >
-            {logify("Dusk Dashboard", classes)}
+            {logify(`Duskboard - ${host}`, classes)}
           </Typography>
         </Toolbar>
       </AppBar>

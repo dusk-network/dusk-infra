@@ -18,6 +18,7 @@ import (
 )
 
 var log = lg.WithField("process", "aggregator")
+var tolerance = time.Minute * 3
 
 type Client struct {
 	uri        *url.URL
@@ -25,6 +26,7 @@ type Client struct {
 	token      string
 	lock       sync.RWMutex
 	status     *Status
+	alerts     map[string]*Alert
 }
 
 func New(uri *url.URL, token string) *Client {
@@ -58,13 +60,14 @@ func New(uri *url.URL, token string) *Client {
 			Ipv4:     ipv4,
 			Hostname: hostname,
 		},
+		alerts: make(map[string]*Alert),
 	}
 	go hc.sendUpdate()
 	return hc
 }
 
 func (c *Client) WriteJSON(v interface{}) error {
-	var payload string
+	var payload, code string
 	p := v.(*monitor.Param)
 
 	switch p.Metric {
@@ -75,7 +78,7 @@ func (c *Client) WriteJSON(v interface{}) error {
 	case "cpu":
 		payload = c.serializeCpu(p)
 	case "log":
-		payload = c.serializeLog(p)
+		code, payload = c.serializeLog(p)
 	case "mem":
 		payload = c.serializeMem(p)
 	case "tail":
@@ -86,7 +89,14 @@ func (c *Client) WriteJSON(v interface{}) error {
 	}
 
 	if len(payload) > 0 {
-		c.send(payload)
+		if formerAlert, ok := c.alerts[code]; ok {
+			span := time.Since(formerAlert.createdAt)
+			if span < tolerance {
+				return nil
+			}
+		}
+		a := c.send(payload)
+		c.alerts[code] = a
 	}
 
 	return nil
@@ -112,15 +122,17 @@ func (c *Client) ReadMessage() (int, []byte, error) {
 	return 0, []byte{}, nil
 }
 
-func (c *Client) send(payload string) {
+func (c *Client) send(payload string) *Alert {
 	alert := &Alert{
-		Content:  payload,
-		Hostname: c.status.Hostname,
-		Ipv4:     c.status.Ipv4,
+		Content:   payload,
+		Hostname:  c.status.Hostname,
+		Ipv4:      c.status.Ipv4,
+		createdAt: time.Now(),
 	}
 	b := new(bytes.Buffer)
 	_ = json.NewEncoder(b).Encode(alert)
 	c.forward(b, "alert")
+	return alert
 }
 
 func (c *Client) forward(r io.Reader, endpoint string) {
@@ -165,19 +177,20 @@ func (c *Client) sendUpdate() {
 }
 
 type Alert struct {
-	Content  string `json:"content"`
-	Ipv4     string `json:"ipv4"`
-	Hostname string `json:"hostname"`
+	Content   string `json:"content"`
+	Ipv4      string `json:"ipv4"`
+	Hostname  string `json:"hostname"`
+	createdAt time.Time
 }
 
 type Status struct {
 	Ipv4      string  `json:"ipv4"`
 	Hostname  string  `json:"hostname"`
-	CPU       float32 `json:"cpu"`
-	Disk      float32 `json:"disk"`
+	CPU       float64 `json:"cpu"`
+	Disk      float64 `json:"disk"`
 	Round     uint64  `json:"height"`
 	BlockTime string  `json:"blockTime"`
 	BlockHash string  `json:"blockHash"`
-	Latency   float32 `json:"latency"`
-	Mem       float32 `json:"memory"`
+	Latency   float64 `json:"latency"`
+	Mem       float64 `json:"memory"`
 }

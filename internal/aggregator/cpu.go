@@ -8,13 +8,13 @@ import (
 )
 
 func (c *Client) serializeCpu(p *monitor.Param) string {
-	cpu, err := strconv.ParseFloat(p.Value, 32)
+	cpu, err := strconv.ParseFloat(p.Value, 64)
 	if err != nil {
 		log.WithError(err).Warnln("error in parsing the cpu value")
 	}
 
 	c.lock.Lock()
-	c.status.CPU = float32(cpu)
+	c.status.CPU = cpu
 	c.lock.Unlock()
 	if cpu > 55 {
 		return fmt.Sprintf("high CPU load (%s%%)", p.Value)

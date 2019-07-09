@@ -10,7 +10,7 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-const formatTimestamp = timestamp => {
+export const formatTimestamp = timestamp => {
   if (!timestamp) {
     return "n/a";
   }
