@@ -28,6 +28,7 @@ import (
 
 type cfg struct {
 	debug     bool
+	skipAggro bool
 	httpAddr  string
 	latencyIP string
 	logfile   string
@@ -97,6 +98,8 @@ func init() {
 	flag.Var(&logUrl{c.u, defaultLogAddr}, "u", logUrlDesc+"(shorthand)")
 	flag.BoolVar(&c.debug, "verbose", defaultDebugMode, debugMode)
 	flag.BoolVar(&c.debug, "v", defaultDebugMode, debugMode+" (shorthand)")
+	flag.BoolVar(&c.skipAggro, "disable-aggregator", false, "disable aggregator")
+	flag.BoolVar(&c.skipAggro, "d", false, "disable aggregator (shorthand)")
 
 	// Part related to the aggregator
 	flag.Var(&logUrl{c.b, defaultAggroAddr}, "bot-aggregator", aggroUrlDesc)
@@ -111,9 +114,20 @@ func init() {
 	}
 }
 
+func parseUrl(uri string) *url.URL {
+	uri = strings.Trim(uri, " ")
+	res, err := url.Parse(uri)
+	if err != nil {
+		fmt.Printf("Malformed %s\n", uri)
+		os.Exit(1)
+	}
+	return res
+}
+
 func main() {
 	var srv *web.Srv
-	// checkPrivileges()
+	srvUrl := parseUrl(c.httpAddr)
+
 	if c.u.Scheme == "" {
 		fmt.Printf("Unrecognized URL %v\n", c.u.String())
 		os.Exit(1)
@@ -122,15 +136,15 @@ func main() {
 	checkLatencyProberIP(c.latencyIP)
 	m := initMonitors(c)
 
-	if c.bToken != "" {
-		fmt.Println("Running without aggregator forwarding")
-		wa := aggregator.New(c.b, c.bToken)
+	if c.bToken != "" && !c.skipAggro {
+		wa := aggregator.New(c.b, srvUrl, c.bToken)
 		srv = web.New(m, wa)
 	} else {
+		fmt.Println("Running without aggregator forwarding")
 		srv = web.New(m, nil)
 	}
 
-	fmt.Printf("Starting up the server at %v\n", c.httpAddr)
+	fmt.Printf("Starting up the server at %s\n", srvUrl.String())
 	// Handle common process-killing signals so we can gracefully shut down:
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
@@ -148,7 +162,7 @@ func main() {
 		os.Exit(0)
 	}(sigc, m)
 
-	if err := srv.Serve(strings.Trim(c.httpAddr, " ")); err != nil {
+	if err := srv.Serve(c.httpAddr); err != nil {
 		fmt.Printf("Error in serving the monitoring data")
 		os.Exit(1)
 	}

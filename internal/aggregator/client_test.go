@@ -53,9 +53,9 @@ var tt = []struct {
 			"code":      "round",
 			"blockHash": "pippo",
 			"round":     uint64(4),
-			"blockTime": "4",
+			"blockTime": float64(4),
 		}),
-		"new block validated: round 4, hash pippo, block time 4ms",
+		"new block validated: round 4, hash pippo, block time 4.00ms",
 	},
 	{
 		newP("log", "", map[string]interface{}{
@@ -74,15 +74,21 @@ func TestClient(t *testing.T) {
 	}
 }
 
+func parseUrl(u string, t *testing.T) *url.URL {
+	uri, err := url.Parse(u)
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+	return uri
+}
+
 func fireSrv(t *testing.T, param *monitor.Param, fn func(http.ResponseWriter, *http.Request)) {
 	srv := httptest.NewTLSServer(http.HandlerFunc(fn))
 	defer srv.Close()
 
-	uri, err := url.Parse(srv.URL)
-	if !assert.NoError(t, err) {
-		t.FailNow()
-	}
-	a := aggregator.New(uri, "12345")
+	uri := parseUrl(srv.URL, t)
+	sri := parseUrl("http://localhost:8080", t)
+	a := aggregator.New(uri, sri, "12345")
 
 	b, err := json.Marshal(param)
 	if !assert.NoError(t, err) {

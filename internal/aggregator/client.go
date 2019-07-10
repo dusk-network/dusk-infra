@@ -29,7 +29,7 @@ type Client struct {
 	alerts     map[string]*Alert
 }
 
-func New(uri *url.URL, token string) *Client {
+func New(uri, srv *url.URL, token string) *Client {
 	var err error
 	var hostname, ipv4 string
 	client := &http.Client{
@@ -59,6 +59,7 @@ func New(uri *url.URL, token string) *Client {
 		status: &Status{
 			Ipv4:     ipv4,
 			Hostname: hostname,
+			Srv:      srv.String(),
 		},
 		alerts: make(map[string]*Alert),
 	}
@@ -95,8 +96,12 @@ func (c *Client) WriteJSON(v interface{}) error {
 				return nil
 			}
 		}
-		a := c.send(payload)
-		c.alerts[code] = a
+		// we do not send new block messages as alerts
+		// the information is already sent through a Status update
+		if code != "round" {
+			a := c.send(payload)
+			c.alerts[code] = a
+		}
 	}
 
 	return nil
@@ -136,7 +141,6 @@ func (c *Client) send(payload string) *Alert {
 }
 
 func (c *Client) forward(r io.Reader, endpoint string) {
-
 	tgt := c.uri.String() + "/" + endpoint
 	logger := new(bytes.Buffer)
 	tr := io.TeeReader(r, logger)
@@ -146,7 +150,10 @@ func (c *Client) forward(r io.Reader, endpoint string) {
 	res, err := c.httpclient.Do(req)
 	if err != nil {
 		log.WithError(err).Warnln("problems in posting to the aggregator")
+		return
 	}
+
+	defer res.Body.Close()
 
 	log.WithFields(lg.Fields{
 		"payload": logger.String(),
@@ -156,11 +163,10 @@ func (c *Client) forward(r io.Reader, endpoint string) {
 	resp, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.WithError(err).Warnln("problems in reading the response")
-	} else {
-		log.WithField("response", string(resp)).Debugln(endpoint + " sent")
+		return
 	}
 
-	res.Body.Close()
+	log.WithField("response", string(resp)).Debugln(endpoint + " sent")
 }
 
 func (c *Client) sendUpdate() {
@@ -186,10 +192,11 @@ type Alert struct {
 type Status struct {
 	Ipv4      string  `json:"ipv4"`
 	Hostname  string  `json:"hostname"`
+	Srv       string  `json:"srv"`
 	CPU       float64 `json:"cpu"`
 	Disk      float64 `json:"disk"`
 	Round     uint64  `json:"height"`
-	BlockTime string  `json:"blockTime"`
+	BlockTime float64 `json:"blockTime"`
 	BlockHash string  `json:"blockHash"`
 	Latency   float64 `json:"latency"`
 	Mem       float64 `json:"memory"`
