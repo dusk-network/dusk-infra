@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"runtime"
+	"runtime/pprof"
 	"strings"
 	"syscall"
 	"time"
@@ -35,9 +37,13 @@ type cfg struct {
 	u         *url.URL
 	b         *url.URL
 	bToken    string
+	memProf   bool
+	cpuProf   bool
 }
 
 var c cfg
+var defaultMemProf = "monitor_mem.prof"
+var defaultCPUProf = "monitor_cpu.prof"
 
 type logUrl struct {
 	*url.URL
@@ -88,24 +94,35 @@ func init() {
 		panic(err)
 	}
 
+	// Server host address setup
 	flag.StringVar(&c.httpAddr, "address", defaultWSAddress, WSAddrDesc)
 	flag.StringVar(&c.httpAddr, "a", defaultWSAddress, WSAddrDesc+" (shorthand)")
+
+	// Latency option
 	flag.StringVar(&c.latencyIP, "seeder", defaultLatencyProberIP, latencyIPDesc)
 	flag.StringVar(&c.latencyIP, "s", defaultLatencyProberIP, latencyIPDesc+" (shorthand)")
+
+	// Logfile Tail option
 	flag.StringVar(&c.logfile, "logfile", defaultLogfile, logfileDesc)
 	flag.StringVar(&c.logfile, "l", defaultLogfile, logfileDesc+" (shorthand)")
+
+	// Logstream UNIX-SOCKET option
 	flag.Var(&logUrl{c.u, defaultLogAddr}, "uri-logserver", logUrlDesc)
 	flag.Var(&logUrl{c.u, defaultLogAddr}, "u", logUrlDesc+"(shorthand)")
+
+	// Debug options
 	flag.BoolVar(&c.debug, "verbose", defaultDebugMode, debugMode)
 	flag.BoolVar(&c.debug, "v", defaultDebugMode, debugMode+" (shorthand)")
-	flag.BoolVar(&c.skipAggro, "disable-aggregator", false, "disable aggregator")
-	flag.BoolVar(&c.skipAggro, "d", false, "disable aggregator (shorthand)")
+	flag.BoolVar(&c.cpuProf, "cpu", false, fmt.Sprintf("profile monitor cpu on %s", defaultCPUProf))
+	flag.BoolVar(&c.memProf, "mem", false, fmt.Sprintf("profile monitor memory on %s", defaultMemProf))
 
-	// Part related to the aggregator
+	// Aggregator options
 	flag.Var(&logUrl{c.b, defaultAggroAddr}, "bot-aggregator", aggroUrlDesc)
 	flag.Var(&logUrl{c.b, defaultAggroAddr}, "b", aggroUrlDesc+"(shorthand)")
 	flag.StringVar(&c.bToken, "token", "", "token to authenticate with the bot")
 	flag.StringVar(&c.bToken, "t", "", "token to authenticate with the bot (shorthand)")
+	flag.BoolVar(&c.skipAggro, "d", false, "disable aggregator (shorthand)")
+	flag.BoolVar(&c.skipAggro, "disable-aggregator", false, "disable aggregator")
 
 	flag.Parse()
 	if c.debug {
@@ -148,10 +165,23 @@ func main() {
 	// Handle common process-killing signals so we can gracefully shut down:
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+
 	go func(c chan os.Signal, monitors []monitor.Mon) {
+		cpuprof, cpuActive := profileCPU()
+		if cpuActive {
+			defer cpuprof.Close()
+		}
+		memprof, memActive := profileMem()
 		// Wait for a SIGINT or SIGKILL:
 		sig := <-c
 		fmt.Printf("Caught signal %s: shutting down.\n", sig)
+		if memActive {
+			defer memprof.Close()
+			runtime.GC()
+			if err := pprof.WriteHeapProfile(memprof); err != nil {
+				fmt.Printf("Cannot write memory profiling: %s", err.Error())
+			}
+		}
 
 		// Stop listening (and unlink the socket if unix type):
 		for _, mon := range monitors {
@@ -166,6 +196,40 @@ func main() {
 		fmt.Printf("Error in serving the monitoring data")
 		os.Exit(1)
 	}
+}
+
+func profileCPU() (*os.File, bool) {
+	if !c.cpuProf {
+		return nil, false
+	}
+
+	f, err := os.Create(defaultCPUProf)
+	if err != nil {
+		fmt.Printf("Problems in creating the CPU profile file %s\n", err.Error())
+		return nil, false
+	}
+
+	if err := pprof.StartCPUProfile(f); err != nil {
+		fmt.Printf("Problems in starting the CPU profiler: %s", err.Error())
+		f.Close()
+		return nil, false
+	}
+
+	return f, true
+}
+
+func profileMem() (*os.File, bool) {
+	if !c.memProf {
+		return nil, false
+	}
+
+	f, err := os.Create(defaultMemProf)
+	if err != nil {
+		fmt.Printf("Problems in creating the memory profile file %s\n", err.Error())
+		return nil, false
+	}
+
+	return f, true
 }
 
 func checkLatencyProberIP(l string) {
