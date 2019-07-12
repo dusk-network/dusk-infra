@@ -26,6 +26,16 @@ func (c *Client) serializeLog(p *monitor.Param) (string, string) {
 		level := p.Data["level"]
 		msg := p.Data["msg"]
 		payload = fmt.Sprintf("[%s] %s", level, msg)
+	case "goroutine":
+		nr := int(p.Data["nr"].(float64))
+		if nr > 200 {
+			payload = fmt.Sprintf("excessive number of active threads: %d", nr)
+		}
+		c.lock.Lock()
+		c.status.ThreadNr = nr
+		c.lock.Unlock()
+	default:
+		return "", ""
 	}
 
 	return code.(string), payload

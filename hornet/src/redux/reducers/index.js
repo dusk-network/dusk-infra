@@ -11,8 +11,9 @@ import {
   UPDATE_LOG_READ,
   UPDATE_MEM_READ,
   UPDATE_NET_READ,
+  UPDATE_THREAD,
   UPDATE_TIME_READ,
-  UPDATE_WARN_LIST,
+  UPDATE_WARN_LIST
 } from "../action-types";
 
 const initialState = {
@@ -23,17 +24,19 @@ const initialState = {
     height: null,
     hash: null,
     timestamp: null,
+    txs: 0
   },
   blockTime: [],
   cpu: [],
   memory: [],
   net: [],
   log: [],
+  thread: [],
   warnings: [],
   disk: 0,
   regions: {},
   nodes: [],
-  updates: {},
+  updates: {}
 };
 
 export default function(state = initialState, action) {
@@ -44,12 +47,12 @@ export default function(state = initialState, action) {
         ...state,
         nodes: [
           ...state.nodes,
-          ...(!(hostname in state.updates) ? [hostname] : []),
+          ...(!(hostname in state.updates) ? [hostname] : [])
         ],
         updates: {
           ...state.updates,
-          [hostname]: [update, ...(state.updates[hostname] || [])],
-        },
+          [hostname]: [update, ...(state.updates[hostname] || [])]
+        }
       };
     }
 
@@ -64,9 +67,9 @@ export default function(state = initialState, action) {
             ...nodes,
             ...(nodes.includes(action.payload.hostname)
               ? []
-              : [action.payload.hostname]),
-          ],
-        },
+              : [action.payload.hostname])
+          ]
+        }
       };
     }
 
@@ -74,7 +77,7 @@ export default function(state = initialState, action) {
       let { type, ...item } = action;
       return {
         ...state,
-        cpu: [item, ...state.cpu],
+        cpu: [item, ...state.cpu]
       };
     }
 
@@ -82,7 +85,7 @@ export default function(state = initialState, action) {
       let { type, ...item } = action;
       return {
         ...state,
-        net: [item, ...state.net],
+        net: [item, ...state.net]
       };
     }
 
@@ -90,7 +93,7 @@ export default function(state = initialState, action) {
       let { type, ...item } = action;
       return {
         ...state,
-        log: [item, ...state.log],
+        log: [item, ...state.log]
       };
     }
 
@@ -98,7 +101,7 @@ export default function(state = initialState, action) {
       let { type, ...item } = action;
       return {
         ...state,
-        warnings: [item, ...state.warnings],
+        warnings: [item, ...state.warnings]
       };
     }
 
@@ -106,7 +109,15 @@ export default function(state = initialState, action) {
       let { type, ...item } = action;
       return {
         ...state,
-        disk: [item], // We add the missing slice to form a 100% pie
+        disk: [item] // We add the missing slice to form a 100% pie
+      };
+    }
+
+    case UPDATE_THREAD: {
+      let { type, ...item } = action;
+      return {
+        ...state,
+        thread: [item, ...state.thread]
       };
     }
 
@@ -114,7 +125,7 @@ export default function(state = initialState, action) {
       let { type, ...item } = action;
       return {
         ...state,
-        memory: [item, ...state.memory],
+        memory: [item, ...state.memory]
       };
     }
 
@@ -122,7 +133,7 @@ export default function(state = initialState, action) {
       let { type, ...item } = action;
       return {
         ...state,
-        blockTime: [item, ...state.blockTime],
+        blockTime: [item, ...state.blockTime]
       };
     }
 
@@ -135,8 +146,8 @@ export default function(state = initialState, action) {
             lastBlock: {
               height,
               hash,
-              timestamp,
-            },
+              timestamp
+            }
           }
         : state;
     }
@@ -148,28 +159,28 @@ export default function(state = initialState, action) {
         ...state,
         hostname,
         port,
-        status: "connecting",
+        status: "connecting"
       };
     }
 
     case CONNECTED: {
       return {
         ...state,
-        status: "connected",
+        status: "connected"
       };
     }
 
     case DISCONNECTED: {
       return {
         ...state,
-        status: "disconnected",
+        status: "disconnected"
       };
     }
 
     case CONNECTION_ERROR: {
       return {
         ...state,
-        status: "error",
+        status: "error"
       };
     }
 

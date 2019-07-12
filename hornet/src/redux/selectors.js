@@ -8,6 +8,7 @@ const netSelector = state => state.net || [];
 const memSelector = state => state.memory || [];
 const diskSelector = state => state.disk || [];
 const warnSelector = state => state.warnings || [];
+const threadSelector = state => state.thread || [];
 
 export const getCurrentBlockInfo = createSelector(
   lastBlockInfo,
@@ -88,6 +89,22 @@ export const getMemoryMetrics = createSelector(
       )
 );
 
+export const getThreadMetrics = createSelector(
+  threadSelector,
+  info =>
+    info
+      .slice(0, 20)
+      .reverse()
+      .reduce(
+        (acc, { value, timestamp }) => {
+          acc.labels.push(timestamp);
+          acc.series[0].push(value);
+          return acc;
+        },
+        { labels: [], series: [[]] }
+      )
+);
+
 export const getDiskMetrics = createSelector(
   diskSelector,
   info => {
@@ -96,7 +113,7 @@ export const getDiskMetrics = createSelector(
       let free = 100 - used;
       return {
         series: [used, free],
-        labels: [`Used: ${used}%`, `Free: ${free}%`],
+        labels: [`Used: ${used}%`, `Free: ${free}%`]
       };
     }
   }

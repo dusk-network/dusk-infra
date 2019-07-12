@@ -80,6 +80,9 @@ func (c *Client) WriteJSON(v interface{}) error {
 		payload = c.serializeCpu(p)
 	case "log":
 		code, payload = c.serializeLog(p)
+		if code == "" {
+			return nil
+		}
 	case "mem":
 		payload = c.serializeMem(p)
 	case "tail":
@@ -200,4 +203,5 @@ type Status struct {
 	BlockHash string  `json:"blockHash"`
 	Latency   float64 `json:"latency"`
 	Mem       float64 `json:"memory"`
+	ThreadNr  int     `json:"thread"`
 }

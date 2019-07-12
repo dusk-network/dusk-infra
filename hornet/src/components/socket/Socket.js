@@ -1,26 +1,26 @@
+import { useEffect, useRef } from "react";
 import { connect } from "react-redux";
 import {
-  connectTo,
   connected,
   connectionError,
+  connectTo,
   disconnected,
-  updateLastBlockInfo,
   updateBlockTimeRead,
-  updateWarningList,
-  updateLogRead,
   updateCPURead,
-  updateMemoryRead,
   updateDiskRead,
+  updateLastBlockInfo,
+  updateLogRead,
+  updateMemoryRead,
   updateNetRead,
+  updateThread,
+  updateWarningList
 } from "../../redux/actions";
-import { useEffect, useRef } from "react";
-import { isThisWeek } from "date-fns";
 //
 const updateMetrics = {
   cpu: updateCPURead,
   mem: updateMemoryRead,
   latency: updateNetRead,
-  disk: updateDiskRead,
+  disk: updateDiskRead
 };
 
 class DuskSocket {
@@ -63,10 +63,17 @@ class DuskSocket {
           const block = {
             height: round,
             hash: blockHash,
-            timestamp,
+            timestamp
           };
           dispatch(updateLastBlockInfo(block));
           dispatch(updateBlockTimeRead(blockTime, timestamp));
+          break;
+        }
+        if (code === "goroutine") {
+          const { nr } = packet;
+          console.log(nr);
+
+          dispatch(updateThread(nr, timestamp));
           break;
         }
         if (level) {
@@ -128,12 +135,12 @@ const Socket = ({ connectTo, status, hostname, port, dispatch }) => {
 const mapStateToProps = ({ status, hostname, port }) => ({
   status,
   hostname,
-  port,
+  port
 });
 
 const mapDispatchToProps = dispatch => ({
   connectTo: (hostname, port) => dispatch(connectTo(hostname, port)),
-  dispatch,
+  dispatch
 });
 
 export default connect(
