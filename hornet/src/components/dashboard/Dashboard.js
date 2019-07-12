@@ -10,14 +10,25 @@ import clsx from "clsx";
 import React from "react";
 import { connect } from "react-redux";
 import logo from "../../d.svg";
-import { getCPUMetrics, getCurrentBlockInfo, getDiskMetrics, getLogMetrics, getMemoryMetrics, getNetMetrics, getTimeMetrics, getWarnings } from "../../redux/selectors";
+import {
+  getCPUMetrics,
+  getCurrentBlockInfo,
+  getDiskMetrics,
+  getLogMetrics,
+  getMemoryMetrics,
+  getNetMetrics,
+  getTimeMetrics,
+  getWarnings,
+} from "../../redux/selectors";
 import BlockCreated from "./BlockCreated";
 import BlockHeight from "./BlockHeight";
 import BlockTimeChart from "./BlockTimeChart";
+import BlockTransactionChart from "./BlockTransactionChart";
 import CPUChart from "./CPUChart";
 import DiskChart from "./DiskChart";
 import LogFile from "./LogFile";
 import MemChart from "./MemChart";
+import ThreadChart from "./ThreadChart";
 import NetLatencyChart from "./NetLatencyChart";
 import Warnings from "./Warnings";
 
@@ -134,6 +145,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 function Dashboard({
+  hostname,
   items,
   lastBlock,
   blockTime,
@@ -159,9 +171,6 @@ function Dashboard({
     classes.noScrolling
   );
 
-  const fullHost = process.env.REACT_APP_HOST_WS || window.location.host
-  const [host, ...rest]= fullHost.split(":")
-
   return (
     <div className={classes.root}>
       <CssBaseline />
@@ -177,7 +186,10 @@ function Dashboard({
             noWrap
             className={classes.title}
           >
-            {logify(`Duskboard - ${host}`, classes)}
+            {logify("Duskboard", classes)}
+          </Typography>
+          <Typography component="h1" variant="h6" color="inherit" noWrap>
+            {hostname}
           </Typography>
         </Toolbar>
       </AppBar>
@@ -186,29 +198,34 @@ function Dashboard({
         <div className={classes.appBarSpacer} />
         <Container maxWidth="lg" className={classes.container}>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={5}>
+            <Grid item xs={12} sm={7}>
               <Paper className={classes.paper}>
                 <BlockHeight height={lastBlock.height} hash={lastBlock.hash} />
               </Paper>
             </Grid>
-            <Grid item xs={12} sm={7}>
+            <Grid item xs={12} sm={5}>
               <Paper className={classes.paper}>
                 <BlockCreated timestamp={lastBlock.timestamp} />
               </Paper>
             </Grid>
-            <Grid item xs={12} sm={9}>
+            <Grid item xs={12} sm={6}>
               <Paper className={fixedHeightPaper}>
                 <BlockTimeChart data={blockTime} />
               </Paper>
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={6}>
               <Paper className={fixedHeightPaper}>
-                <DiskChart data={disk} />
+                <BlockTransactionChart data={blockTime} />
               </Paper>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={9}>
               <Paper className={fixedHeightPaperNoScrollig}>
-                <NetLatencyChart data={net} />
+                <ThreadChart data={memory} />
+              </Paper>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <Paper className={fixedHeightPaperNoScrollig}>
+                <DiskChart data={disk} />
               </Paper>
             </Grid>
             <Grid item xs={12} sm={4}>
@@ -216,9 +233,15 @@ function Dashboard({
                 <CPUChart data={cpu} />
               </Paper>
             </Grid>
+
             <Grid item xs={12} sm={4}>
               <Paper className={fixedHeightPaperNoScrollig}>
                 <MemChart data={memory} />
+              </Paper>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Paper className={fixedHeightPaperNoScrollig}>
+                <NetLatencyChart data={net} />
               </Paper>
             </Grid>
             <Grid item xs={12}>
@@ -237,6 +260,7 @@ function Dashboard({
 }
 
 const mapStateToProps = state => ({
+  hostname: state.hostname,
   lastBlock: getCurrentBlockInfo(state),
   // items: lastNodeUpdateSelector(state),
   // locations: getNodeLocations(state),

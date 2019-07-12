@@ -125,18 +125,21 @@ $ct-series-colors: (
   #a748ca
 ) !default;
 
+.thread-line,
 .cpu-line,
 .net-line,
 .block-line {
   @extend .ct-line;
 }
 
+.thread-area,
 .cpu-area,
 .net-area,
 .block-area {
   @extend .ct-area;
 }
 
+.thread-point,
 .cpu-point,
 .net-point,
 .block-point {
@@ -165,4 +168,20 @@ $ct-series-colors: (
 }
 .net-area {
   fill: #01b38b !important;
+}
+
+.thread-line,
+.thread-point {
+  stroke: #ed622b !important;
+}
+.thread-area {
+  fill: #ed622b !important;
+}
+
+.ct-label.ct-horizontal.ct-end {
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  text-anchor: auto !important;
+  transform: translateX(-50%);
 }

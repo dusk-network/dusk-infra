@@ -17,7 +17,7 @@ export const getCurrentBlockInfo = createSelector(
 export const getWarnings = createSelector(
   warnSelector,
   warnings => warnings.slice(0, 200)
-)
+);
 
 export const getTimeMetrics = createSelector(
   timeSelector,
@@ -28,12 +28,12 @@ export const getTimeMetrics = createSelector(
       .reduce(
         (acc, { value, timestamp }) => {
           acc.labels.push(timestamp);
-          acc.series[0].push(value);
+          acc.series[0].push((value / 1e3).toFixed(2));
           return acc;
         },
         { labels: [], series: [[]] }
       )
-)
+);
 
 export const getCPUMetrics = createSelector(
   cpuSelector,
@@ -44,7 +44,7 @@ export const getCPUMetrics = createSelector(
       .reduce(
         (acc, { value, timestamp }) => {
           acc.labels.push(timestamp);
-          acc.series[0].push(value);
+          acc.series[0].push(value.toFixed(1));
           return acc;
         },
         { labels: [], series: [[]] }
@@ -96,7 +96,7 @@ export const getDiskMetrics = createSelector(
       let free = 100 - used;
       return {
         series: [used, free],
-        labels: [`Used: ${used}%`, `Free: ${free}%`]
+        labels: [`Used: ${used}%`, `Free: ${free}%`],
       };
     }
   }

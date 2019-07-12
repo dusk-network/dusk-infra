@@ -1,11 +1,15 @@
 import React from "react";
-import ChartistGraph from "react-chartist";
-import { ResponsiveContainer } from "recharts";
-import * as chartUtils from "../../chart-utils";
-import Peak from "./Peak";
-import Title from "./Title";
+import { makeStyles } from "@material-ui/styles";
 
-const MAIN_COLOR = "#D70206";
+import { ResponsiveContainer } from "recharts";
+
+import ChartistGraph from "react-chartist";
+
+import Title from "./Title";
+import Peak from "./Peak";
+import * as chartUtils from "../../chart-utils";
+
+const MAIN_COLOR = "#ED622B";
 
 const options = {
   fullWidth: true,
@@ -13,18 +17,22 @@ const options = {
   chartPadding: {
     right: 40,
   },
-  high: 100,
-  low: 0,
+  low: 15,
   showPoint: true,
   lineSmooth: true,
   axisX: {
     labelInterpolationFnc: chartUtils.skipLabels,
   },
+  classNames: {
+    line: "thread-line",
+    point: "thread-point",
+    area: "thread-area",
+  },
 };
 
 export default ({ data }) => (
   <>
-    <Title>Memory Usage (%)</Title>
+    <Title>Threads</Title>
     <ResponsiveContainer>
       <ChartistGraph
         data={data}
@@ -37,7 +45,7 @@ export default ({ data }) => (
       value={data.series[0][data.series[0].length - 1]}
       timestamp={data.labels[data.labels.length - 1]}
       style={{ color: MAIN_COLOR }}
-      unit={"%"}
+      unit={" threads"}
     />
   </>
 );

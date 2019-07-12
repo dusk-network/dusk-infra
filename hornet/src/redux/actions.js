@@ -1,8 +1,8 @@
 import {
   ADD_NODE_UPDATE,
   ADD_REGION,
+  CONNECT,
   CONNECTED,
-  CONNECTING,
   CONNECTION_ERROR,
   DISCONNECTED,
   UPDATE_CPU_READ,
@@ -72,9 +72,10 @@ export const updateLastBlockInfo = payload => ({
   payload,
 });
 
-export const connecting = payload => ({
-  type: CONNECTING,
-  payload,
+export const connectTo = (hostname, port) => ({
+  type: CONNECT,
+  hostname,
+  port,
 });
 
 export const connected = payload => ({
@@ -92,78 +93,56 @@ export const disconnected = payload => ({
   payload,
 });
 
-export const listenForUpdates = socket => dispatch => {
-  dispatch(connecting());
-  const host = process.env.REACT_APP_HOST_WS || window.location.host;
-  let ws = new WebSocket(`ws:/${host}/stats`);
+// export const listenForUpdates = socket => dispatch => {
+//   //dispatch(connecting());
+//   const host = process.env.REACT_APP_HOST_WS || window.location.host;
+//   let ws = new WebSocket(`ws:/${host}/stats`);
 
-  ws.onopen = () => dispatch(connected());
-  ws.onerror = () => dispatch(connectionError());
-  ws.onclose = () => dispatch(disconnected());
-  ws.onmessage = ({ data }) => {
-    // const payload = JSON.parse(JSON.parse(data)); // Todo: fix wrong json encoding from server
-    const payload = JSON.parse(data);
+//   ws.onopen = () => dispatch(connected());
+//   ws.onerror = () => dispatch(connectionError());
+//   ws.onclose = () => dispatch(disconnected());
+//   ws.onmessage = ({ data }) => {
+//     const payload = JSON.parse(data);
+//     const { metric, value, data: packet, timestamp } = payload;
 
-    const { metric, value, data: packet, timestamp } = payload;
-    switch (metric) {
-      case "cpu":
-        dispatch(updateCPURead(parseFloat(value), getTime(timestamp)));
-        break;
-      case "mem":
-        dispatch(updateMemoryRead(parseInt(value), getTime(timestamp)));
-        break;
-      case "latency":
-        dispatch(updateNetRead(parseInt(value), getTime(timestamp)));
-        break;
-      case "disk":
-        dispatch(updateDiskRead(parseInt(value), getTime(timestamp)));
-        break;
-      case "log":
-        const { code, level } = packet;
-        if (code && code === "round") {
-          const { round, blockHash, blockTime } = packet;
+//     switch (metric) {
+//       case "cpu":
+//       case "mem":
+//       case "latency":
+//       case "disk":
+//         dispatch(updateMetrics[metric](+value, timestamp));
+//         break;
+//       case "log":
+//         const { code, level } = packet;
+//         if (code && code === "round") {
+//           const { round, blockHash, blockTime } = packet;
 
-          const block = {
-            height: round,
-            hash: blockHash,
-            timestamp: timestamp,
-          };
-          dispatch(updateLastBlockInfo(block));
-          dispatch(updateBlockTimeRead(blockTime, getTime(timestamp)));
-          break;
-        }
+//           const block = {
+//             height: round,
+//             hash: blockHash,
+//             timestamp,
+//           };
+//           dispatch(updateLastBlockInfo(block));
+//           dispatch(updateBlockTimeRead(blockTime, timestamp));
+//           break;
+//         }
 
-        if (level) {
-          const { time = timestamp } = packet;
-          dispatch(updateWarningList(packet, getTime(time)));
-          break;
-        }
+//         if (level) {
+//           const { time = timestamp } = packet;
+//           dispatch(updateWarningList(packet, time));
+//           break;
+//         }
 
-      case "tail":
-        dispatch(updateLogRead(value, getTime(timestamp)));
-        break;
+//       case "tail":
+//         dispatch(updateLogRead(value, timestamp));
+//         break;
 
-      default:
-        console.log("INVALID METRIC SENT");
-    }
-    // dispatch(addNodeUpdate(payload));
-    // dispatch(addRegion(payload));
-  };
+//       default:
+//         console.log("INVALID METRIC SENT");
+//     }
+//   };
 
-  if (!("ws" in socket)) {
-    socket.ws = ws;
-  }
-};
-
-const getTime = timestamp => timestamp;
-// let g = new Date(Date.parse(timestamp));
-// let hours = g.getHours();
-// let seconds = g.getSeconds();
-// let minutes = g.getMinutes();
-// return (
-//   hours +
-//   ":" +
-//   minutes.toString().padStart(2, "0") +
-//   ":" +
-//   seconds.toString().padStart(2, "0")
-// );
+//   if (!("ws" in socket)) {
+//     socket.ws = ws;
+//   }
+// };

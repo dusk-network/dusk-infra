@@ -5,7 +5,7 @@ import * as chartUtils from "../../chart-utils";
 import Peak from "./Peak";
 import Title from "./Title";
 
-const MAIN_COLOR = "#D70206";
+const MAIN_COLOR = "#523B97";
 
 const options = {
   fullWidth: true,
@@ -13,10 +13,13 @@ const options = {
   chartPadding: {
     right: 40,
   },
-  high: 100,
-  low: 0,
   showPoint: true,
   lineSmooth: true,
+  classNames: {
+    line: "block-line",
+    point: "block-point",
+    area: "block-area",
+  },
   axisX: {
     labelInterpolationFnc: chartUtils.skipLabels,
   },
@@ -24,7 +27,7 @@ const options = {
 
 export default ({ data }) => (
   <>
-    <Title>Memory Usage (%)</Title>
+    <Title>Block Transactions</Title>
     <ResponsiveContainer>
       <ChartistGraph
         data={data}
@@ -37,7 +40,7 @@ export default ({ data }) => (
       value={data.series[0][data.series[0].length - 1]}
       timestamp={data.labels[data.labels.length - 1]}
       style={{ color: MAIN_COLOR }}
-      unit={"%"}
+      unit={"s"}
     />
   </>
 );

@@ -2,7 +2,7 @@ import React from "react";
 import ChartistGraph from "react-chartist";
 import { ResponsiveContainer } from "recharts";
 import * as chartUtils from "../../chart-utils";
-import LastUpdate from "./LastUpdate";
+import Peak from "./Peak";
 import Title from "./Title";
 
 const MAIN_COLOR = "#01b38b";
@@ -38,7 +38,8 @@ export default ({ data }) => (
         listener={chartUtils.listener(MAIN_COLOR)}
       />
     </ResponsiveContainer>
-    <LastUpdate
+    <Peak
+      value={data.series[0][data.series[0].length - 1]}
       timestamp={data.labels[data.labels.length - 1]}
       style={{ color: MAIN_COLOR }}
     />

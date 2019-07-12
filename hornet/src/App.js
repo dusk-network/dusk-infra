@@ -18,6 +18,7 @@ import React from "react";
 import "./chartist.scss";
 import Dashboard from "./components/dashboard/Dashboard";
 import Socket from "./components/socket/Socket";
+
 export default function App({ listenForUpdates }) {
   return (
     <>

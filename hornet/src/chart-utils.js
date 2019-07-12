@@ -2,7 +2,7 @@ import Chartist from "chartist";
 
 const lz = (num, length = 2) => String(num).padStart(length, "0");
 const step = (index, length) => {
-  if (index > 0 && index < length - 1 && index === Math.floor(length / 2)) {
+  if ((index > 0 && index === Math.floor(length / 2)) || index === length - 1) {
     return true;
   }
   return false;
