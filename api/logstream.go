@@ -16,11 +16,11 @@ import (
 var quitSig = struct{}{}
 var log = lg.WithField("process", "logstream")
 
-// LogStreamMonitor is a TCP server listening for json-encoded data from a single (local) connection.
+// Monitor is a TCP server listening for json-encoded data from a single (local) connection.
 // It exposes an error channel for notifying of problems and listens a quit channel for termination requests
 // Packets are json-encoded and are proxied to both the client and an aggregator. Ideally, it would use a stream multiplexer to abstract writers away but given its focus on being a simple channel for node logging, the complication of introducing an abstraction layer is  rather unnecessary
-// LogStreamMonitor implements the monitor.Mon interface
-type LogStreamMonitor struct {
+// Monitor implements the monitor.Mon interface
+type Monitor struct {
 	srv      net.Listener
 	ErrChan  chan error
 	quitChan chan struct{}
@@ -28,7 +28,7 @@ type LogStreamMonitor struct {
 }
 
 // New creates a new LogProxy from a host. The host should be a correct URL (such as unix:///path/to/unix.sock)
-func New(h *url.URL) *LogStreamMonitor {
+func New(h *url.URL) *Monitor {
 	log.WithField("URL", h.String()).Debugln("starting logstream server")
 	srv, err := net.Listen(h.Scheme, h.Path)
 	if err != nil {
@@ -39,7 +39,7 @@ func New(h *url.URL) *LogStreamMonitor {
 		}
 	}
 
-	return &LogStreamMonitor{
+	return &Monitor{
 		srv:      srv,
 		ErrChan:  make(chan error),
 		quitChan: make(chan struct{}, 1),
@@ -47,14 +47,15 @@ func New(h *url.URL) *LogStreamMonitor {
 	}
 }
 
-func (l *LogStreamMonitor) Shutdown() {
+// Shutdown the server and sends a message to the quit channel
+func (l *Monitor) Shutdown() {
 	l.quitChan <- struct{}{}
 	_ = l.srv.Close()
 }
 
-// Pipe a json.Writer to the incoming connection. As a result, the data sent over the line will be encoded in the monitor.Param struct on the `Data` field.
+// Wire a json.Writer to the incoming connection. As a result, the data sent over the line will be encoded in the monitor.Param struct on the `Data` field.
 // The Value field will be left empty and the `Metric` set to `log`
-func (l *LogStreamMonitor) Wire(w io.Writer) {
+func (l *Monitor) Wire(w io.Writer) {
 
 	log.Debugln("wiring the logstream monitoring")
 	for {
@@ -97,7 +98,7 @@ func (l *LogStreamMonitor) Wire(w io.Writer) {
 	}
 }
 
-func (l *LogStreamMonitor) receive(d *json.Decoder) {
+func (l *Monitor) receive(d *json.Decoder) {
 	for {
 		var msg map[string]interface{}
 		if err := d.Decode(&msg); err != nil {
@@ -105,15 +106,19 @@ func (l *LogStreamMonitor) receive(d *json.Decoder) {
 			log.WithError(err).Warnln("error in decoding incoming JSON packet")
 			return
 		}
-		// forwarding the message to the websocket connection and locking the connection at the same time
-		l.dataChan <- monitor.Param{
-			Metric:    "log",
-			Timestamp: time.Now(),
-			Data:      msg,
+		if len(msg) > 0 {
+
+			// forwarding the message to the websocket connection and locking the connection at the same time
+			l.dataChan <- monitor.Param{
+				Metric:    "log",
+				Timestamp: time.Now(),
+				Data:      msg,
+			}
 		}
 	}
 }
 
-func (l *LogStreamMonitor) Disconnect() {
+// Disconnect the monitoring
+func (l *Monitor) Disconnect() {
 	l.quitChan <- quitSig
 }

@@ -22,6 +22,7 @@ import (
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/aggregator"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/cpu"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/disk"
+	"gitlab.dusk.network/dusk-core/node-monitor/internal/ip"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/latency"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/log"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/mem"
@@ -39,6 +40,8 @@ type cfg struct {
 	bToken    string
 	memProf   bool
 	cpuProf   bool
+	hostName  string
+	hostIP    string
 }
 
 var c cfg
@@ -87,16 +90,32 @@ func init() {
 	var err error
 	c.u, err = url.Parse(defaultLogAddr)
 	if err != nil {
-		panic(err)
+		fmt.Println(err.Error())
+		os.Exit(1)
 	}
 	c.b, err = url.Parse(defaultAggroAddr)
 	if err != nil {
-		panic(err)
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	hname, err := os.Hostname()
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	ipv4, err := ip.Retrieve()
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
 	}
 
 	// Server host address setup
 	flag.StringVar(&c.httpAddr, "address", defaultWSAddress, WSAddrDesc)
 	flag.StringVar(&c.httpAddr, "a", defaultWSAddress, WSAddrDesc+" (shorthand)")
+	flag.StringVar(&c.hostName, "hostname", hname, "set the hostname manually")
+	flag.StringVar(&c.hostIP, "hostip", ipv4, "set the IP manually")
 
 	// Latency option
 	flag.StringVar(&c.latencyIP, "seeder", defaultLatencyProberIP, latencyIPDesc)
@@ -153,7 +172,7 @@ func main() {
 	m := initMonitors(c)
 
 	if c.bToken != "" && !c.skipAggro {
-		wa := aggregator.New(c.b, c.httpAddr, c.bToken)
+		wa := aggregator.New(c.b, c.httpAddr, c.bToken, c.hostName, c.hostIP)
 		srv = web.New(m, wa)
 	} else {
 		fmt.Println("Running without aggregator forwarding")

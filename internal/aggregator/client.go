@@ -8,12 +8,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"sync"
 	"time"
 
 	lg "github.com/sirupsen/logrus"
-	"gitlab.dusk.network/dusk-core/node-monitor/internal/ip"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
 )
 
@@ -31,9 +29,9 @@ type Client struct {
 }
 
 // New creates a new Aggregator Client and sets up the connection
-func New(uri *url.URL, srv string, token string) *Client {
-	var err error
-	var hostname, ipv4 string
+func New(uri *url.URL, srv, token, hostName, hostIP string) *Client {
+	// var err error
+	// var hostname, ipv4 string
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
@@ -44,23 +42,23 @@ func New(uri *url.URL, srv string, token string) *Client {
 		client.Transport = tr
 	}
 
-	ipv4, err = ip.Retrieve()
-	if err != nil {
-		panic(err)
-	}
+	// ipv4, err = ip.Retrieve()
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	hostname, err = os.Hostname()
-	if err != nil {
-		panic(err)
-	}
+	// hostname, err = os.Hostname()
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	hc := &Client{
 		uri:        uri,
 		httpclient: client,
 		token:      token,
 		status: &Status{
-			Ipv4:     ipv4,
-			Hostname: hostname,
+			Ipv4:     hostIP,
+			Hostname: hostName,
 			Srv:      srv,
 		},
 		alerts: make(map[string]*Alert),
