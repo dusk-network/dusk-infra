@@ -45,19 +45,19 @@ var c cfg
 var defaultMemProf = "monitor_mem.prof"
 var defaultCPUProf = "monitor_cpu.prof"
 
-type logUrl struct {
+type logURL struct {
 	*url.URL
 	defaultLogAddr string
 }
 
-func (l *logUrl) String() string {
+func (l *logURL) String() string {
 	if l.URL != nil {
 		return l.URL.String()
 	}
 	return l.defaultLogAddr
 }
 
-func (l *logUrl) Set(value string) error {
+func (l *logURL) Set(value string) error {
 	lURL, err := url.Parse(value)
 	if err != nil {
 		return err
@@ -81,8 +81,8 @@ func init() {
 		debugMode              = "start in debug mode"
 	)
 
-	logUrlDesc := "URI of the log monitoring server"
-	aggroUrlDesc := "URI of the log aggregator"
+	logURLDesc := "URI of the log monitoring server"
+	aggroURLDesc := "URI of the log aggregator"
 
 	var err error
 	c.u, err = url.Parse(defaultLogAddr)
@@ -107,8 +107,8 @@ func init() {
 	flag.StringVar(&c.logfile, "l", defaultLogfile, logfileDesc+" (shorthand)")
 
 	// Logstream UNIX-SOCKET option
-	flag.Var(&logUrl{c.u, defaultLogAddr}, "uri-logserver", logUrlDesc)
-	flag.Var(&logUrl{c.u, defaultLogAddr}, "u", logUrlDesc+"(shorthand)")
+	flag.Var(&logURL{c.u, defaultLogAddr}, "uri-logserver", logURLDesc)
+	flag.Var(&logURL{c.u, defaultLogAddr}, "u", logURLDesc+"(shorthand)")
 
 	// Debug options
 	flag.BoolVar(&c.debug, "verbose", defaultDebugMode, debugMode)
@@ -117,8 +117,8 @@ func init() {
 	flag.BoolVar(&c.memProf, "mem", false, fmt.Sprintf("profile monitor memory on %s", defaultMemProf))
 
 	// Aggregator options
-	flag.Var(&logUrl{c.b, defaultAggroAddr}, "bot-aggregator", aggroUrlDesc)
-	flag.Var(&logUrl{c.b, defaultAggroAddr}, "b", aggroUrlDesc+"(shorthand)")
+	flag.Var(&logURL{c.b, defaultAggroAddr}, "bot-aggregator", aggroURLDesc)
+	flag.Var(&logURL{c.b, defaultAggroAddr}, "b", aggroURLDesc+"(shorthand)")
 	flag.StringVar(&c.bToken, "token", "", "token to authenticate with the bot")
 	flag.StringVar(&c.bToken, "t", "", "token to authenticate with the bot (shorthand)")
 	flag.BoolVar(&c.skipAggro, "d", false, "disable aggregator (shorthand)")
@@ -131,11 +131,11 @@ func init() {
 	}
 }
 
-func parseUrl(uri string) *url.URL {
+func parseURL(uri string) *url.URL {
 	uri = strings.Trim(uri, " ")
 	res, err := url.Parse(uri)
 	if err != nil {
-		fmt.Printf("Malformed %s\n", uri)
+		fmt.Printf("Malformed url %s: %s\n", uri, err.Error())
 		os.Exit(1)
 	}
 	return res
@@ -143,7 +143,6 @@ func parseUrl(uri string) *url.URL {
 
 func main() {
 	var srv *web.Srv
-	srvUrl := parseUrl(c.httpAddr)
 
 	if c.u.Scheme == "" {
 		fmt.Printf("Unrecognized URL %v\n", c.u.String())
@@ -154,14 +153,14 @@ func main() {
 	m := initMonitors(c)
 
 	if c.bToken != "" && !c.skipAggro {
-		wa := aggregator.New(c.b, srvUrl, c.bToken)
+		wa := aggregator.New(c.b, c.httpAddr, c.bToken)
 		srv = web.New(m, wa)
 	} else {
 		fmt.Println("Running without aggregator forwarding")
 		srv = web.New(m, nil)
 	}
 
-	fmt.Printf("Starting up the server at %s\n", srvUrl.String())
+	fmt.Printf("Starting up the server at %s\n", c.httpAddr)
 	// Handle common process-killing signals so we can gracefully shut down:
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)

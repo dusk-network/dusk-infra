@@ -87,7 +87,7 @@ func fireSrv(t *testing.T, param *monitor.Param, fn func(http.ResponseWriter, *h
 	defer srv.Close()
 
 	uri := parseUrl(srv.URL, t)
-	sri := parseUrl("http://localhost:8080", t)
+	sri := "http://localhost:8080"
 	a := aggregator.New(uri, sri, "12345")
 
 	b, err := json.Marshal(param)

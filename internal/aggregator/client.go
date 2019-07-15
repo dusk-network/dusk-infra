@@ -20,6 +20,7 @@ import (
 var log = lg.WithField("process", "aggregator")
 var tolerance = time.Minute * 3
 
+// Client to the aggregator of alerts and status. It connects to a URL and send JSON packets
 type Client struct {
 	uri        *url.URL
 	httpclient *http.Client
@@ -29,7 +30,8 @@ type Client struct {
 	alerts     map[string]*Alert
 }
 
-func New(uri, srv *url.URL, token string) *Client {
+// New creates a new Aggregator Client and sets up the connection
+func New(uri *url.URL, srv string, token string) *Client {
 	var err error
 	var hostname, ipv4 string
 	client := &http.Client{
@@ -59,7 +61,7 @@ func New(uri, srv *url.URL, token string) *Client {
 		status: &Status{
 			Ipv4:     ipv4,
 			Hostname: hostname,
-			Srv:      srv.String(),
+			Srv:      srv,
 		},
 		alerts: make(map[string]*Alert),
 	}
@@ -67,6 +69,7 @@ func New(uri, srv *url.URL, token string) *Client {
 	return hc
 }
 
+// WriteJSON accepts a JSON encodable struct, checks if an alert needs to be sent to the aggregator and updates the status
 func (c *Client) WriteJSON(v interface{}) error {
 	var payload, code string
 	p := v.(*monitor.Param)
@@ -122,10 +125,12 @@ func (c *Client) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
+// Close as defined by the json.JsonReadWriter interface
 func (c *Client) Close() error {
 	return nil
 }
 
+// ReadMessage as defined by the json.JsonReadWriter interface
 func (c *Client) ReadMessage() (int, []byte, error) {
 	return 0, []byte{}, nil
 }
@@ -185,6 +190,8 @@ func (c *Client) sendUpdate() {
 	}
 }
 
+// Alert is the json encodable struct sent to the aggregator to signal an unexpected alert
+// or an error situation
 type Alert struct {
 	Content   string `json:"content"`
 	Ipv4      string `json:"ipv4"`
@@ -192,6 +199,7 @@ type Alert struct {
 	createdAt time.Time
 }
 
+// Status is the json encodable struct sent to the aggregator
 type Status struct {
 	Ipv4      string  `json:"ipv4"`
 	Hostname  string  `json:"hostname"`
