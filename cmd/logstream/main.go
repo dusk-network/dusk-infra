@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -43,6 +44,8 @@ func main() {
 		switch cmds[0] {
 		case "help":
 			help()
+		case "thread":
+			sendThreads(cmds[1:], c)
 		case "quit":
 			fmt.Print("$ BYE!\n")
 			return
@@ -61,7 +64,20 @@ func main() {
 var round = 0
 
 func help() {
-	fmt.Fprintf(os.Stdout, "log [error | warning | fatal | panic ] | block | quit | help\n")
+	fmt.Fprintf(os.Stdout, "log [error | warning | fatal | panic ] | thread [nr] | block | quit | help\n")
+}
+
+func sendThreads(params []string, w io.Writer) {
+	var n = rand.Intn(1000)
+	var err error
+	if len(params) > 0 {
+		if n, err = strconv.Atoi(params[0]); err != nil {
+			fmt.Fprintf(os.Stdout, "invalid parameter for `thread`")
+			return
+		}
+	}
+	s := fmt.Sprintf(`{"code": "goroutine", "nr": %d}`, n)
+	mwrite(s, w)
 }
 
 func sendBlock(w io.Writer) {
