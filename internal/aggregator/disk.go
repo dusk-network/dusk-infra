@@ -11,6 +11,7 @@ func (c *Client) serializeDisk(p *monitor.Param) string {
 	value, err := strconv.ParseFloat(p.Value, 64)
 	if err != nil {
 		log.WithError(err).Warnln("error in parsing the disk value")
+		return ""
 	}
 
 	c.lock.Lock()

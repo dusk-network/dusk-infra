@@ -11,6 +11,7 @@ func (c *Client) serializeCpu(p *monitor.Param) string {
 	cpu, err := strconv.ParseFloat(p.Value, 64)
 	if err != nil {
 		log.WithError(err).Warnln("error in parsing the cpu value")
+		return ""
 	}
 
 	c.lock.Lock()

@@ -12,28 +12,41 @@ func (c *Client) serializeLog(p *monitor.Param) (string, string) {
 
 	switch code {
 	case "round":
-		round := p.Data["round"]
-		hash := p.Data["blockHash"]
-		time := p.Data["blockTime"]
 		c.lock.Lock()
-		c.status.BlockHash = hash.(string)
-		c.status.BlockTime = time.(float64)
-		c.status.Round = uint64(round.(float64))
+		payload = "new block validated: "
+
+		if round, ok := p.Data["round"]; ok {
+			c.status.Round = uint64(round.(float64))
+			payload = fmt.Sprintf("%s round: %d", payload, c.status.Round)
+		}
+		if hash, ok := p.Data["blockHash"]; ok {
+			c.status.BlockHash = hash.(string)
+			payload = fmt.Sprintf("%s hash: %s", payload, c.status.BlockHash)
+		}
+		if time, ok := p.Data["blockTime"]; ok {
+			c.status.BlockTime = time.(float64)
+			payload = fmt.Sprintf("%s block time: %.2f", payload, c.status.BlockTime)
+		}
 		c.lock.Unlock()
 
-		payload = fmt.Sprintf("new block validated: round %d, hash %s, block time %.2fms", c.status.Round, hash, time)
 	case "warn":
-		level := p.Data["level"]
-		msg := p.Data["msg"]
-		payload = fmt.Sprintf("[%s] %s", level, msg)
-	case "goroutine":
-		nr := int(p.Data["nr"].(float64))
-		if nr > 200 {
-			payload = fmt.Sprintf("excessive number of active threads: %d", nr)
+		if level, ok := p.Data["level"]; ok {
+			payload = fmt.Sprintf("[%s]", level)
 		}
-		c.lock.Lock()
-		c.status.ThreadNr = nr
-		c.lock.Unlock()
+		msg := p.Data["msg"]
+		payload = fmt.Sprintf("%s %s", payload, msg)
+	case "goroutine":
+		if nr, ok := p.Data["nr"]; ok {
+			n := int(nr.(float64))
+			if n > 200 {
+				payload = fmt.Sprintf("excessive number of active threads: %d", nr)
+			}
+			c.lock.Lock()
+			c.status.ThreadNr = n
+			c.lock.Unlock()
+			break
+		}
+		return "", ""
 	default:
 		return "", ""
 	}

@@ -16,6 +16,7 @@ func (c *Client) serializeLatency(p *monitor.Param) string {
 	v, er := strconv.ParseFloat(p.Value, 64)
 	if er != nil {
 		log.WithError(er).Warnln("latency processing reported error")
+		return ""
 	}
 	c.lock.Lock()
 	c.status.Latency = v
