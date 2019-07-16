@@ -66,7 +66,7 @@ func send(data string) error {
 
 }
 
-func await(t *testing.T, nl *logstream.LogStreamMonitor, d time.Duration) {
+func await(t *testing.T, nl *logstream.Monitor, d time.Duration) {
 	//giving enough time to the server to start
 	select {
 	case err := <-nl.ErrChan:

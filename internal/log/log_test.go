@@ -101,7 +101,7 @@ func TestTailLog(t *testing.T) {
 			d := json.NewDecoder(r)
 			assert.NoError(t, testJsonReception(d, "pippo"))
 
-			if !assert.NoError(t, l.TailProc.Stop()) {
+			if !assert.NoError(t, l.Tail.Stop()) {
 				assert.FailNow(t, "error in stopping tail process")
 			}
 			e := <-l.QuitChan

@@ -23,13 +23,13 @@ var LinesToRetain = 10
 
 // Tailer is a convenience wrapper over a log file tailing
 type Tailer struct {
-	logFile    string
-	file       *os.File
-	lock       sync.RWMutex
-	closed     bool
-	QuitChan   chan error
-	TailTailer *tail.Tail
-	lastLines  []*monitor.Param
+	logFile   string
+	file      *os.File
+	lock      sync.RWMutex
+	closed    bool
+	QuitChan  chan error
+	Tail      *tail.Tail
+	lastLines []*monitor.Param
 }
 
 // New creates a *Tailer
@@ -171,14 +171,14 @@ func (l *Tailer) TailLog(w io.Writer) {
 		},
 	}
 
-	l.TailTailer, err = tail.TailFile(logfile, cfg)
+	l.Tail, err = tail.TailFile(logfile, cfg)
 
 	if err != nil {
 		l.QuitChan <- err
 		return
 	}
 
-	for line := range l.TailTailer.Lines {
+	for line := range l.Tail.Lines {
 		row := strings.Trim(line.Text, " ")
 		if len(row) <= 0 {
 			continue
@@ -207,7 +207,7 @@ func (l *Tailer) Shutdown() {
 	l.close()
 	l.QuitChan <- errors.New("Tail process stopped")
 	// this triggers a race condition. However we don't care as the process is shutdown anyway
-	_ = l.TailTailer.Stop()
+	_ = l.Tail.Stop()
 	lg.Debugln("bye")
 }
 
