@@ -7,7 +7,7 @@ import (
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
 )
 
-func (c *Client) serializeCpu(p *monitor.Param) string {
+func (c *Client) serializeCPU(p *monitor.Param) string {
 	cpu, err := strconv.ParseFloat(p.Value, 64)
 	if err != nil {
 		log.WithError(err).Warnln("error in parsing the cpu value")
@@ -15,10 +15,13 @@ func (c *Client) serializeCpu(p *monitor.Param) string {
 	}
 
 	c.lock.Lock()
-	c.status.CPU = cpu
+	w := c.status.cpu.Append(cpu)
+	avg := w.CalculateAvg()
+	c.status.cpu = w
+	c.status.CPU = avg
 	c.lock.Unlock()
-	if cpu > 55 {
-		return fmt.Sprintf("high CPU load (%s%%)", p.Value)
+	if avg > 50 {
+		return fmt.Sprintf("high CPU load (%.2f%%)", avg)
 	}
 	return ""
 }

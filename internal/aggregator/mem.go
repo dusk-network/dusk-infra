@@ -15,10 +15,13 @@ func (c *Client) serializeMem(p *monitor.Param) string {
 	}
 
 	c.lock.Lock()
-	c.status.Mem = mem
+	m := c.status.mem.Append(mem)
+	avg := m.CalculateAvg()
+	c.status.Mem = avg
+	c.status.mem = m
 	c.lock.Unlock()
-	if mem > 80 {
-		return fmt.Sprintf("high memory usage (%s%%)", p.Value)
+	if avg > 80 {
+		return fmt.Sprintf("high memory usage (%.2f%%)", avg)
 	}
 	return ""
 }

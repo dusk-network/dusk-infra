@@ -10,7 +10,10 @@ import (
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
 )
 
-type Disk struct{}
+// Disk is a disk monitor
+type Disk struct {
+	monitor.Window
+}
 
 type stats struct {
 	Mountpoint string  `json:"mountpoint"`
@@ -20,6 +23,14 @@ type stats struct {
 	Used       string  `json:"used"`
 }
 
+// New creates a new Disk monitor
+func New() *Disk {
+	return &Disk{
+		Window: make(monitor.Window, 0),
+	}
+}
+
+// Monitor writes the disk space monitor on the writer and saves the result on a shifting window
 func (d *Disk) Monitor(w io.Writer, m *monitor.Param) error {
 	parts, err := disk.Partitions(false)
 	if err != nil {
@@ -33,7 +44,7 @@ func (d *Disk) Monitor(w io.Writer, m *monitor.Param) error {
 				return err
 			}
 
-			d := &stats{
+			s := &stats{
 				Mountpoint: u.Path,
 				Percent:    u.UsedPercent,
 				Total:      fmt.Sprintf("%s GiB", strconv.FormatUint(u.Total/1024/1024/1024, 10)),
@@ -41,7 +52,9 @@ func (d *Disk) Monitor(w io.Writer, m *monitor.Param) error {
 				Used:       fmt.Sprintf("%s GiB", strconv.FormatUint(u.Used/1024/1024/1024, 10)),
 			}
 
-			m.Value = fmt.Sprintf("%d", int(d.Percent))
+			m.Value = fmt.Sprintf("%.2f", s.Percent)
+			d.Window = d.Append(s.Percent)
+
 			b, err := json.Marshal(m)
 			if err != nil {
 				return err

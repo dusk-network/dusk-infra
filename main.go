@@ -24,9 +24,9 @@ import (
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/disk"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/ip"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/latency"
-	"gitlab.dusk.network/dusk-core/node-monitor/internal/log"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/mem"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
+	"gitlab.dusk.network/dusk-core/node-monitor/internal/tail"
 )
 
 type cfg struct {
@@ -291,7 +291,7 @@ func initMonitors(c cfg) []monitor.Mon {
 	}
 
 	// if the logfile does not exist we don't add it to the processes
-	if l := log.New(c.logfile); l != nil {
+	if l := tail.New(c.logfile); l != nil {
 		mons = append(mons, l)
 	} else {
 		fmt.Println("Logfile not found. Log screening cannot be started")

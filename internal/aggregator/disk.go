@@ -15,10 +15,13 @@ func (c *Client) serializeDisk(p *monitor.Param) string {
 	}
 
 	c.lock.Lock()
-	c.status.Disk = value
+	disk := c.status.disk.Append(value)
+	avg := disk.CalculateAvg()
+	c.status.disk = disk
+	c.status.Disk = avg
 	c.lock.Unlock()
-	if value > 90 {
-		return fmt.Sprintf("little or no Disk space left (%s%%)", p.Value)
+	if avg > 90 {
+		return fmt.Sprintf("little or no Disk space left (%.2f%%)", avg)
 	}
 	return ""
 }

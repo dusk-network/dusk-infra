@@ -17,6 +17,7 @@ import (
 
 var log = lg.WithField("process", "aggregator")
 var tolerance = time.Minute * 3
+var runningWindow = time.Minute * 1
 
 // Client to the aggregator of alerts and status. It connects to a URL and send JSON packets
 type Client struct {
@@ -30,8 +31,6 @@ type Client struct {
 
 // New creates a new Aggregator Client and sets up the connection
 func New(uri *url.URL, srv, token, hostName, hostIP string) *Client {
-	// var err error
-	// var hostname, ipv4 string
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
@@ -41,16 +40,6 @@ func New(uri *url.URL, srv, token, hostName, hostIP string) *Client {
 		}
 		client.Transport = tr
 	}
-
-	// ipv4, err = ip.Retrieve()
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// hostname, err = os.Hostname()
-	// if err != nil {
-	// 	panic(err)
-	// }
 
 	hc := &Client{
 		uri:        uri,
@@ -78,7 +67,7 @@ func (c *Client) WriteJSON(v interface{}) error {
 	case "disk":
 		payload = c.serializeDisk(p)
 	case "cpu":
-		payload = c.serializeCpu(p)
+		payload = c.serializeCPU(p)
 	case "log":
 		code, payload = c.serializeLog(p)
 		if code == "" {
@@ -210,4 +199,11 @@ type Status struct {
 	Latency   float64 `json:"latency"`
 	Mem       float64 `json:"memory"`
 	ThreadNr  int     `json:"thread"`
+
+	cpu       monitor.Window
+	disk      monitor.Window
+	blockTime monitor.Window
+	latency   monitor.Window
+	mem       monitor.Window
+	threads   monitor.Window
 }

@@ -24,7 +24,10 @@ func (c *Client) serializeLog(p *monitor.Param) (string, string) {
 			payload = fmt.Sprintf("%s hash: %s", payload, c.status.BlockHash)
 		}
 		if time, ok := p.Data["blockTime"]; ok {
-			c.status.BlockTime = time.(float64)
+			b := c.status.blockTime.Append(time.(float64))
+			avg := b.CalculateAvg()
+			c.status.blockTime = b
+			c.status.BlockTime = avg
 			payload = fmt.Sprintf("%s block time: %.2f", payload, c.status.BlockTime)
 		}
 		c.lock.Unlock()
@@ -37,13 +40,17 @@ func (c *Client) serializeLog(p *monitor.Param) (string, string) {
 		payload = fmt.Sprintf("%s %s", payload, msg)
 	case "goroutine":
 		if nr, ok := p.Data["nr"]; ok {
-			n := int(nr.(float64))
-			if n > 200 {
-				payload = fmt.Sprintf("excessive number of active threads: %d", nr)
-			}
+			n := nr.(float64)
+
 			c.lock.Lock()
-			c.status.ThreadNr = n
+			tn := c.status.threads.Append(n)
+			avg := tn.CalculateAvg()
+			c.status.threads = tn
+			c.status.ThreadNr = int(avg)
 			c.lock.Unlock()
+			if avg > 200 {
+				payload = fmt.Sprintf("excessive number of active threads: %d", int(avg))
+			}
 			break
 		}
 		return "", ""
