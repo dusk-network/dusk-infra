@@ -13,14 +13,14 @@ import {
   updateMemoryRead,
   updateNetRead,
   updateThread,
-  updateWarningList
+  updateWarningList,
 } from "../../redux/actions";
 //
 const updateMetrics = {
   cpu: updateCPURead,
   mem: updateMemoryRead,
   latency: updateNetRead,
-  disk: updateDiskRead
+  disk: updateDiskRead,
 };
 
 class DuskSocket {
@@ -31,7 +31,9 @@ class DuskSocket {
 
   open(hostname, port) {
     const { dispatch } = this;
-    this.ws = new WebSocket(`ws:/${hostname}:${port}/stats`);
+    const host = hostname + (port ? ":" + port : "");
+
+    this.ws = new WebSocket(`ws:/${host}/stats`);
 
     ["open", "close", "error", "message"].forEach(type =>
       this.ws.addEventListener(type, this)
@@ -63,7 +65,7 @@ class DuskSocket {
           const block = {
             height: round,
             hash: blockHash,
-            timestamp
+            timestamp,
           };
           dispatch(updateLastBlockInfo(block));
           dispatch(updateBlockTimeRead(blockTime, timestamp));
@@ -135,12 +137,12 @@ const Socket = ({ connectTo, status, hostname, port, dispatch }) => {
 const mapStateToProps = ({ status, hostname, port }) => ({
   status,
   hostname,
-  port
+  port,
 });
 
 const mapDispatchToProps = dispatch => ({
   connectTo: (hostname, port) => dispatch(connectTo(hostname, port)),
-  dispatch
+  dispatch,
 });
 
 export default connect(
