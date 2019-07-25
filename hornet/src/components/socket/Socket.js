@@ -33,7 +33,7 @@ class DuskSocket {
     const { dispatch } = this;
     const host = hostname + (port ? ":" + port : "");
 
-    this.ws = new WebSocket(`ws:/${host}/stats`);
+    this.ws = new WebSocket(`ws://${host}/stats`);
 
     ["open", "close", "error", "message"].forEach(type =>
       this.ws.addEventListener(type, this)
