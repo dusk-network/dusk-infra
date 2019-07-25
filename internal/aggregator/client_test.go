@@ -13,10 +13,13 @@ import (
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
 )
 
-func newP(m, v string, d map[string]interface{}) *monitor.Param {
+func newP(m string, v float64, d map[string]interface{}) *monitor.Param {
+
+	w := monitor.NewWindow()
+	w = w.Append(v)
 	return &monitor.Param{
 		Metric:    m,
-		Value:     v,
+		Window:    w,
 		Data:      d,
 		Timestamp: time.Now(),
 	}
@@ -27,29 +30,29 @@ var tt = []struct {
 	expected string
 }{
 	{
-		newP("cpu", "94.02", nil),
+		newP("cpu", 94.02, nil),
 		"high CPU load (94.02%)",
 	},
 	{
-		newP("disk", "95.11", nil),
+		newP("disk", 95.11, nil),
 		"little or no Disk space left (95.11%)",
 	},
 	{
-		newP("mem", "95.11", nil),
+		newP("mem", 95.11, nil),
 		"high memory usage (95.11%)",
 	},
 	{
-		newP("latency", "20", map[string]interface{}{
+		newP("latency", 20, map[string]interface{}{
 			"error": "my balls itch",
 		}),
 		"my balls itch",
 	},
 	{
-		newP("latency", "200", nil),
+		newP("latency", 200, nil),
 		"network too slow. Latency more than 150ms (200ms)",
 	},
 	{
-		newP("log", "", map[string]interface{}{
+		newP("log", 0, map[string]interface{}{
 			"code":      "round",
 			"blockHash": "pippo",
 			"round":     uint64(4),
@@ -58,7 +61,7 @@ var tt = []struct {
 		"new block validated: round 4, hash pippo, block time 4.00ms",
 	},
 	{
-		newP("log", "", map[string]interface{}{
+		newP("log", 0, map[string]interface{}{
 			"code":  "warn",
 			"error": "pippo",
 			"msg":   "pluto",

@@ -49,15 +49,16 @@ class DuskSocket {
     const { dispatch } = this;
 
     const payload = JSON.parse(data);
-    const { metric, value, data: packet, timestamp } = payload;
+    const { metric, text, slice, data: packet, timestamp } = payload;
 
     switch (metric) {
       case "cpu":
       case "mem":
       case "latency":
       case "disk":
-        dispatch(updateMetrics[metric](+value, timestamp));
+				slice.map(({value, timestamp}) => dispatch(updateMetrics[metric](+value, timestamp)));
         break;
+
       case "log":
         const { code, level } = packet;
         if (code && code === "round") {
@@ -73,7 +74,6 @@ class DuskSocket {
         }
         if (code === "goroutine") {
           const { nr } = packet;
-          console.log(nr);
 
           dispatch(updateThread(nr, timestamp));
           break;
@@ -83,9 +83,25 @@ class DuskSocket {
           dispatch(updateWarningList(packet, time));
           break;
         }
-      case "tail":
-        dispatch(updateLogRead(value, timestamp));
         break;
+
+      case "status":
+      	const { round, blockHash, blockTimes, /*txs,*/ threads } = packet
+      	const block = {
+					height: round,
+					hash: blockHash,
+					timestamp
+				};
+				dispatch(updateLastBlockInfo(block));
+				blockTimes.map(({ value: blockTime, timestamp: stamp }) => dispatch(updateBlockTimeRead(+blockTime, stamp)))
+				threads.map(({ value: nr, timestamp: stamp }) => dispatch(updateThread(+nr, stamp)))
+				// TODO: transactions?
+				break;
+
+      case "tail":
+        dispatch(updateLogRead(text, timestamp));
+        break;
+
       default:
         console.log("INVALID METRIC SENT");
     }

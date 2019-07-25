@@ -1,4 +1,4 @@
-package log_test
+package tail_test
 
 import (
 	"bytes"
@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
+	"gitlab.dusk.network/dusk-core/node-monitor/internal/tail"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.dusk.network/dusk-core/node-monitor/internal/log"
 )
 
 var tlogs = []struct {
@@ -28,7 +28,7 @@ var tlogs = []struct {
 }
 
 func TestFetchTail(t *testing.T) {
-	l := log.New("")
+	l := tail.New("")
 	for _, tt := range tlogs {
 		test := bytes.NewBufferString(tt.msg)
 		lines := l.FetchTail(test, tt.limit)
@@ -50,7 +50,7 @@ func TestMonitor(t *testing.T) {
 		assert.FailNowf(t, "error in writing to tmp file: %s\n", err.Error())
 	}
 
-	l := log.New(fn)
+	l := tail.New(fn)
 	r := new(bytes.Buffer)
 
 	test := "pippo"
@@ -69,7 +69,7 @@ func TestMonitor(t *testing.T) {
 }
 
 func testJsonReception(d *json.Decoder, test string) error {
-	m := &monitor.Param{}
+	m := monitor.NewParam("tail")
 	if err := d.Decode(m); err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func TestTailLog(t *testing.T) {
 	}
 
 	defer os.Remove(f.Name())
-	l := log.New(fName)
+	l := tail.New(fName)
 
 	go l.TailLog(w)
 	//giving some time
@@ -121,7 +121,7 @@ func TestShutdown(t *testing.T) {
 	}
 
 	defer os.Remove(f.Name())
-	l := log.New(fName)
+	l := tail.New(fName)
 
 	go l.TailLog(w)
 

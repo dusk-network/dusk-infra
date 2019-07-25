@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"time"
 
@@ -15,6 +16,11 @@ type (
 	// to be communicated to new inbound connections
 	StatefulMon interface {
 		Mon
+		StatefulSampler
+	}
+
+	// StatefulSampler extends the Sampler interface with a state
+	StatefulSampler interface {
 		InitialState(io.Writer) error
 	}
 
@@ -24,30 +30,37 @@ type (
 		Shutdown()
 	}
 
+	// Param is the json encodable structure communicated to the monitoring clients
 	Param struct {
 		Timestamp time.Time              `json:"timestamp"`
 		Metric    string                 `json:"metric"`
-		Value     string                 `json:"value"`
-		Data      map[string]interface{} `json:"data"`
+		Window    Window                 `json:"slice,omitempty"`
+		Data      map[string]interface{} `json:"data,omitempty"`
+		Value     string                 `json:"text,omitempty"` //Deprecated, it should ideally be a []string
 	}
 
-	Supervisor interface {
+	// Sampler wraps the various monitoring processes
+	Sampler interface {
 		Monitor(io.Writer, *Param) error
 	}
 
+	// TickerMonitor pushes data collected from the monitoring with a given frequency
 	TickerMonitor struct {
-		Supervisor
+		Sampler
 		Metric   string
 		quitChan chan struct{}
 		i        time.Duration
 	}
 )
 
+// NewParam builds a new Param
 func NewParam(metric string) *Param {
 	return &Param{
 		Timestamp: time.Now(),
 		Metric:    metric,
 		Data:      make(map[string]interface{}),
+		Window:    NewWindow(),
+		Value:     "",
 	}
 }
 
@@ -59,12 +72,18 @@ func (p *Param) String() string {
 	return ""
 }
 
-func New(s Supervisor, i time.Duration, metric string) *TickerMonitor {
+// Add a value to the Value field
+func (p *Param) Add(v float64) {
+	p.Window.Append(v)
+}
+
+// New creates a TickerMonitor
+func New(s Sampler, i time.Duration, metric string) *TickerMonitor {
 	return &TickerMonitor{
-		Supervisor: s,
-		i:          i,
-		quitChan:   make(chan struct{}, 1),
-		Metric:     metric,
+		Sampler:  s,
+		i:        i,
+		quitChan: make(chan struct{}, 1),
+		Metric:   metric,
 	}
 }
 
@@ -85,18 +104,30 @@ func (m *TickerMonitor) Wire(w io.Writer) {
 	}
 }
 
+// Shutdown sends a signal to the internal quit channel
 func (m *TickerMonitor) Shutdown() {
 	m.quitChan <- struct{}{}
 }
 
 func (m *TickerMonitor) write(w io.Writer) error {
-	p := &Param{
-		Metric:    m.Metric,
-		Timestamp: time.Now(),
-	}
+	p := NewParam(m.Metric)
+
 	log.WithField("param", p.Metric).Debugln("packet produced")
 	if err := m.Monitor(w, p); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (m *TickerMonitor) String() string {
+	return fmt.Sprintf("%s", m.Sampler)
+}
+
+// InitialState as specified by the StatefulMon interface
+func (m *TickerMonitor) InitialState(w io.Writer) error {
+	initializer, ok := m.Sampler.(StatefulSampler)
+	if ok {
+		return initializer.InitialState(w)
 	}
 	return nil
 }

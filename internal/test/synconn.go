@@ -5,19 +5,21 @@ import (
 	"encoding/json"
 )
 
-type JsonReadWriter struct {
+// JSONReadWriter is a mock of a Websocket connection
+type JSONReadWriter struct {
 	*bytes.Buffer
 	Closed bool
 }
 
-func NewWriter() *JsonReadWriter {
-	return &JsonReadWriter{
+// NewWriter creates a new Mock Websocket connection
+func NewWriter() *JSONReadWriter {
+	return &JSONReadWriter{
 		Buffer: new(bytes.Buffer),
 	}
 }
 
-func (s *JsonReadWriter) WriteJSON(v interface{}) error {
-
+// WriteJSON mimics the Websocket function
+func (s *JSONReadWriter) WriteJSON(v interface{}) error {
 	switch v.(type) {
 	case string:
 		if _, err := s.Write([]byte(v.(string))); err != nil {
@@ -37,12 +39,14 @@ func (s *JsonReadWriter) WriteJSON(v interface{}) error {
 	return nil
 }
 
-func (s *JsonReadWriter) ReadMessage() (int, []byte, error) {
+// ReadMessage mimics the Websocket function
+func (s *JSONReadWriter) ReadMessage() (int, []byte, error) {
 	b := s.Bytes()
 	return len(b), b, nil
 }
 
-func (s *JsonReadWriter) Close() error {
+// Close mimics the Websocket function
+func (s *JSONReadWriter) Close() error {
 	s.Closed = true
 	return nil
 }

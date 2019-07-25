@@ -1,4 +1,4 @@
-package log
+package tail
 
 import (
 	"bufio"
@@ -9,12 +9,13 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/hpcloud/tail"
 	"github.com/sirupsen/logrus"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
 )
+
+var _ monitor.StatefulMon = (*Tailer)(nil)
 
 var lg = logrus.WithField("process", "logtail")
 
@@ -98,6 +99,10 @@ func (l *Tailer) InitialState(conn io.Writer) error {
 		}
 	}
 	return nil
+}
+
+func (l *Tailer) String() string {
+	return "tail"
 }
 
 // Monitor simply writes a JSON stream to the writer
@@ -212,9 +217,7 @@ func (l *Tailer) Shutdown() {
 }
 
 func newParam(m string) *monitor.Param {
-	return &monitor.Param{
-		Metric:    "tail",
-		Value:     m,
-		Timestamp: time.Now(),
-	}
+	p := monitor.NewParam("tail")
+	p.Value = m
+	return p
 }

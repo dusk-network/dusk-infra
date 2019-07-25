@@ -24,14 +24,13 @@ import (
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/disk"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/ip"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/latency"
-	"gitlab.dusk.network/dusk-core/node-monitor/internal/log"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/mem"
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
+	"gitlab.dusk.network/dusk-core/node-monitor/internal/tail"
 )
 
 type cfg struct {
 	debug     bool
-	skipAggro bool
 	httpAddr  string
 	latencyIP string
 	logfile   string
@@ -42,6 +41,16 @@ type cfg struct {
 	cpuProf   bool
 	hostName  string
 	hostIP    string
+	skip      skipSampler
+}
+
+func (conf *cfg) isSkipped(sampler string) bool {
+	for _, v := range conf.skip {
+		if v == strings.ToLower(sampler) {
+			return true
+		}
+	}
+	return false
 }
 
 var c cfg
@@ -66,6 +75,17 @@ func (l *logURL) Set(value string) error {
 		return err
 	}
 	*l.URL = *lURL
+	return nil
+}
+
+type skipSampler []string
+
+func (s *skipSampler) String() string {
+	return "skip one or more samplers"
+}
+
+func (s *skipSampler) Set(value string) error {
+	*s = append(*s, value)
 	return nil
 }
 
@@ -140,8 +160,18 @@ func init() {
 	flag.Var(&logURL{c.b, defaultAggroAddr}, "b", aggroURLDesc+"(shorthand)")
 	flag.StringVar(&c.bToken, "token", "", "token to authenticate with the bot")
 	flag.StringVar(&c.bToken, "t", "", "token to authenticate with the bot (shorthand)")
-	flag.BoolVar(&c.skipAggro, "d", false, "disable aggregator (shorthand)")
-	flag.BoolVar(&c.skipAggro, "disable-aggregator", false, "disable aggregator")
+	flag.Var(&c.skip, "skip", `
+		Skip one or more sampler. Allowed values are:
+			cpu			- the cpu sampler
+			mem			- the memory sampler
+			tail		- the log tailer
+			stream		- the log stream
+			disk		- the disk sampler
+			latency		- the latency sampler
+			aggregator	- the aggregator bot
+		Example:
+			# node-monitor -skip cpu -skip mem
+	`)
 
 	flag.Parse()
 	if c.debug {
@@ -161,59 +191,49 @@ func parseURL(uri string) *url.URL {
 }
 
 func main() {
-	var srv *web.Srv
 
-	if c.u.Scheme == "" {
-		fmt.Printf("Unrecognized URL %v\n", c.u.String())
-		os.Exit(1)
-	}
-
-	checkLatencyProberIP(c.latencyIP)
 	m := initMonitors(c)
 
-	if c.bToken != "" && !c.skipAggro {
-		wa := aggregator.New(c.b, c.httpAddr, c.bToken, c.hostName, c.hostIP)
-		srv = web.New(m, wa)
-	} else {
-		fmt.Println("Running without aggregator forwarding")
-		srv = web.New(m, nil)
-	}
+	// aggregator bot
+	srv := c.launchServer(m)
 
-	fmt.Printf("Starting up the server at %s\n", c.httpAddr)
 	// Handle common process-killing signals so we can gracefully shut down:
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
-	go func(c chan os.Signal, monitors []monitor.Mon) {
-		cpuprof, cpuActive := profileCPU()
-		if cpuActive {
-			defer cpuprof.Close()
-		}
-		memprof, memActive := profileMem()
-		// Wait for a SIGINT or SIGKILL:
-		sig := <-c
-		fmt.Printf("Caught signal %s: shutting down.\n", sig)
-		if memActive {
-			defer memprof.Close()
-			runtime.GC()
-			if err := pprof.WriteHeapProfile(memprof); err != nil {
-				fmt.Printf("Cannot write memory profiling: %s", err.Error())
-			}
-		}
+	go captureInterrupt(sigc, m)
 
-		// Stop listening (and unlink the socket if unix type):
-		for _, mon := range monitors {
-			mon.Shutdown()
-		}
-
-		// And we're done:
-		os.Exit(0)
-	}(sigc, m)
-
+	fmt.Printf("Starting up the server at %s\n", c.httpAddr)
 	if err := srv.Serve(c.httpAddr); err != nil {
 		fmt.Printf("Error in serving the monitoring data")
 		os.Exit(1)
 	}
+}
+
+func captureInterrupt(c chan os.Signal, monitors []monitor.Mon) {
+	cpuprof, cpuActive := profileCPU()
+	if cpuActive {
+		defer cpuprof.Close()
+	}
+	memprof, memActive := profileMem()
+	// Wait for a SIGINT or SIGKILL:
+	sig := <-c
+	fmt.Printf("Caught signal %s: shutting down.\n", sig)
+	if memActive {
+		defer memprof.Close()
+		runtime.GC()
+		if err := pprof.WriteHeapProfile(memprof); err != nil {
+			fmt.Printf("Cannot write memory profiling: %s", err.Error())
+		}
+	}
+
+	// Stop listening (and unlink the socket if unix type):
+	for _, mon := range monitors {
+		mon.Shutdown()
+	}
+
+	// And we're done:
+	os.Exit(0)
 }
 
 func profileCPU() (*os.File, bool) {
@@ -260,42 +280,118 @@ func checkLatencyProberIP(l string) {
 
 func initMonitors(c cfg) []monitor.Mon {
 	mons := make([]monitor.Mon, 0)
-	// if the url is specified we create the logstream server
-	mons = append(
+	mons = c.launchLogStream(mons)
+	mons = c.launchCPU(mons)
+	mons = c.launchMem(mons)
+	mons = c.launchDisk(mons)
+	mons = c.launchLatency(mons)
+	mons = c.launchTail(mons)
+	return mons
+}
+
+func (conf *cfg) launchServer(mons []monitor.Mon) *web.Srv {
+	if c.bToken != "" && !c.isSkipped("aggregator") {
+		wa := aggregator.New(c.b, c.httpAddr, c.bToken, c.hostName, c.hostIP)
+		return web.New(mons, wa)
+	}
+	fmt.Println("Running without aggregator forwarding")
+	return web.New(mons, nil)
+}
+
+func (conf *cfg) launchLogStream(mons []monitor.Mon) []monitor.Mon {
+	if c.isSkipped("stream") {
+		fmt.Println("Skipping log stream serving")
+		return mons
+	}
+
+	if conf.u.Scheme == "" {
+		fmt.Printf("Unrecognized URL %v\n", c.u.String())
+		os.Exit(1)
+	}
+
+	return append(
 		mons,
-		logstream.New(c.u),
+		logstream.New(conf.u),
+	)
+}
+
+func (conf *cfg) launchCPU(mons []monitor.Mon) []monitor.Mon {
+	if c.isSkipped("cpu") {
+		fmt.Println("Skipping cpu sampling")
+		return mons
+	}
+
+	return append(
+		mons,
 		monitor.New(
 			&cpu.CPU{},
 			5*time.Second,
 			"cpu",
 		),
+	)
+}
+
+func (conf *cfg) launchMem(mons []monitor.Mon) []monitor.Mon {
+	if c.isSkipped("mem") {
+		fmt.Println("Skipping mem sampling")
+		return mons
+	}
+
+	return append(
+		mons,
 		monitor.New(
 			&mem.Mem{},
 			8*time.Second,
 			"mem",
 		),
+	)
+}
+
+func (conf *cfg) launchDisk(mons []monitor.Mon) []monitor.Mon {
+	if c.isSkipped("disk") {
+		fmt.Println("Skipping disk sampling")
+		return mons
+	}
+
+	return append(
+		mons,
 		monitor.New(
 			&disk.Disk{},
-			5*time.Second,
+			time.Minute,
 			"disk",
 		),
 	)
+}
+
+func (conf *cfg) launchLatency(mons []monitor.Mon) []monitor.Mon {
+	if c.isSkipped("latency") {
+		fmt.Println("skipping latency")
+		return mons
+	}
+
+	checkLatencyProberIP(c.latencyIP)
 
 	l := latency.New(c.latencyIP)
-	if err := l.(*latency.Latency).ProbePriviledges(); err == nil {
-		m := monitor.New(l, 10*time.Second, "latency")
-		mons = append(mons, m)
-	} else {
+	if err := l.ProbePriviledges(); err != nil {
 		fmt.Println("Cannot setup the latency prober. Are you running with enough proviledges?")
 		os.Exit(3)
 	}
 
-	// if the logfile does not exist we don't add it to the processes
-	if l := log.New(c.logfile); l != nil {
-		mons = append(mons, l)
-	} else {
-		fmt.Println("Logfile not found. Log screening cannot be started")
+	m := monitor.New(l, 10*time.Second, "latency")
+	return append(mons, m)
+}
+
+func (conf *cfg) launchTail(mons []monitor.Mon) []monitor.Mon {
+	if conf.isSkipped("tail") {
+		fmt.Println("Skipping log tailing")
+		return mons
 	}
 
-	return mons
+	l := tail.New(c.logfile)
+	if l == nil {
+		fmt.Println("Logfile not found. Log screening cannot be started")
+		os.Exit(3)
+	}
+
+	return append(mons, l)
 }
