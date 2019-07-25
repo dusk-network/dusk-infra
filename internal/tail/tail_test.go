@@ -69,7 +69,7 @@ func TestMonitor(t *testing.T) {
 }
 
 func testJsonReception(d *json.Decoder, test string) error {
-	m := &monitor.Param{}
+	m := monitor.NewParam("tail")
 	if err := d.Decode(m); err != nil {
 		return err
 	}

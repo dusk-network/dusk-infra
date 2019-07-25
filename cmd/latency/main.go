@@ -11,7 +11,6 @@ import (
 func main() {
 	l := latency.New("178.62.193.89")
 	buf := new(bytes.Buffer)
-
 	p := &monitor.Param{}
 	if err := l.Monitor(buf, p); err != nil {
 		fmt.Println("oops")

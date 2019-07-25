@@ -59,7 +59,7 @@ func New(uri *url.URL, srv, token, hostName, hostIP string) *Client {
 // WriteJSON accepts a JSON encodable struct, checks if an alert needs to be sent to the aggregator and updates the status
 func (c *Client) WriteJSON(v interface{}) error {
 	var payload, code string
-	p := v.(*monitor.Param)
+	p := *v.(*monitor.Param)
 
 	switch p.Metric {
 	case "latency":

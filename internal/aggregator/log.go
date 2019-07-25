@@ -6,7 +6,7 @@ import (
 	"gitlab.dusk.network/dusk-core/node-monitor/internal/monitor"
 )
 
-func (c *Client) serializeLog(p *monitor.Param) (string, string) {
+func (c *Client) serializeLog(p monitor.Param) (string, string) {
 	var payload string
 	code := p.Data["code"]
 
@@ -38,10 +38,10 @@ func (c *Client) serializeLog(p *monitor.Param) (string, string) {
 		}
 		msg := p.Data["msg"]
 		payload = fmt.Sprintf("%s %s", payload, msg)
+
 	case "goroutine":
 		if nr, ok := p.Data["nr"]; ok {
 			n := nr.(float64)
-
 			c.lock.Lock()
 			tn := c.status.threads.Append(n)
 			avg := tn.CalculateAvg()
@@ -54,6 +54,7 @@ func (c *Client) serializeLog(p *monitor.Param) (string, string) {
 			break
 		}
 		return "", ""
+
 	default:
 		return "", ""
 	}

@@ -1,6 +1,7 @@
 package mux
 
 import (
+	"bytes"
 	"io"
 	"math/rand"
 	"sync"
@@ -12,12 +13,14 @@ import (
 
 var log = lg.WithField("process", "mux")
 
+// Writer is a threadsafe multiwriter to the websocket connections
 type Writer struct {
 	sync.Mutex
 	io.Writer
 	conns map[uint32]*j.SynConn
 }
 
+// New creates a Writer
 func New() *Writer {
 	return &Writer{
 		conns: make(map[uint32]*j.SynConn),
@@ -26,15 +29,18 @@ func New() *Writer {
 
 // Write on the websocket
 func (mux *Writer) Write(b []byte) (int, error) {
-	if mux.Writer != nil {
-		return mux.Writer.Write(b)
+	writer := mux.Writer
+	if writer == nil {
+		// faking a Writer so samplers will start to build their windows
+		writer = new(bytes.Buffer)
+		log.Debugln("No real writer specified yet. Buffering windows")
 	}
-	log.Debugln("No writer specified yet. Dropping packet")
-	return 0, nil
+
+	return writer.Write(b)
 }
 
 // Add a websocket and writes the initial state where appropriate
-func (mux *Writer) Add(jw j.JsonReadWriter) uint32 {
+func (mux *Writer) Add(jw j.ReadWriter) uint32 {
 	mux.Lock()
 	defer mux.Unlock()
 	id := rand.Uint32()
@@ -43,6 +49,7 @@ func (mux *Writer) Add(jw j.JsonReadWriter) uint32 {
 	return id
 }
 
+// Remove a websocket from the Writer
 func (mux *Writer) Remove(id uint32) {
 	mux.Lock()
 	defer mux.Unlock()

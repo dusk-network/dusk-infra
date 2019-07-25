@@ -14,7 +14,7 @@ import (
 
 var monitors = []struct {
 	name string
-	mon  monitor.Supervisor
+	mon  monitor.Sampler
 }{
 	{name: "cpu", mon: &cpu.CPU{}},
 	{name: "disk", mon: &disk.Disk{}},

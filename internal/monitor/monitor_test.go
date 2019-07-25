@@ -1,8 +1,9 @@
 package monitor_test
 
 import (
-	"bytes"
+	"encoding/binary"
 	"io"
+	"math"
 	"testing"
 	"time"
 
@@ -11,9 +12,9 @@ import (
 )
 
 func TestMonitor(t *testing.T) {
+	test := float64(3.2)
 	r, w := io.Pipe()
-	buf := new(bytes.Buffer)
-	s := mockSupervisor{t: "test"}
+	s := mockSampler{t: []float64{test}}
 
 	m := monitor.New(s, 10*time.Millisecond, "test")
 	go m.Wire(w)
@@ -21,27 +22,34 @@ func TestMonitor(t *testing.T) {
 	//giving enough time to monitor.Wire
 	time.Sleep(time.Millisecond)
 
-	// writing 3 times the test string
-	b := make([]byte, 4)
+	// writing 3 times the test value
+	var b [8]byte
 	for i := 0; i < 3; i++ {
-		_, err := r.Read(b)
+		_, err := r.Read(b[:])
 		if !assert.NoError(t, err) {
-			return
+			t.FailNow()
 		}
-		buf.Write(b)
-	}
+		// bits
+		bits := binary.LittleEndian.Uint64(b[:])
+		// bits to float64
+		f := math.Float64frombits(bits)
 
-	assert.Equal(t, "testtesttest", buf.String())
+		assert.Equal(t, test, f)
+	}
 }
 
-type mockSupervisor struct {
-	t string
+type mockSampler struct {
+	t []float64
 }
 
-func (m mockSupervisor) Monitor(w io.Writer, p *monitor.Param) error {
-	p.Value = m.t
-	if _, err := w.Write([]byte(p.Value)); err != nil {
-		return err
+func (m mockSampler) Monitor(w io.Writer, p *monitor.Param) error {
+	var b [8]byte
+	for _, s := range m.t {
+		binary.LittleEndian.PutUint64(b[:], math.Float64bits(s))
+		if _, err := w.Write(b[:]); err != nil {
+			return err
+		}
 	}
+	p.Window = p.Window.Append(m.t...)
 	return nil
 }

@@ -24,12 +24,15 @@ var upgrader = websocket.Upgrader{
 
 var log = lg.WithField("process", "server")
 
+// Srv is represents the monitoring server. It accepts HTTP and Websocket
+// connections and forwards monitor's initial state and data
 type Srv struct {
 	Monitors []monitor.Mon
 	lock     sync.Mutex
 	muxConn  *mux.Writer
 }
 
+// New creates a Srv by passing the monitors and the aggregator Client
 func New(m []monitor.Mon, a *aggregator.Client) *Srv {
 	muxConn := mux.New()
 	if a != nil {
@@ -68,9 +71,12 @@ func (s *Srv) stats(w http.ResponseWriter, r *http.Request) {
 	s.lock.Lock()
 	id := s.muxConn.Add(c)
 
+	// communicating the initial state to the new connection
 	for _, mon := range s.Monitors {
+		log.Debugln("checking stateful monitor")
 		init, ok := mon.(monitor.StatefulMon)
 		if ok {
+			log.WithField("monitor", fmt.Sprintf("%s", mon)).Debugln("sending initial state")
 			if err := init.InitialState(s.muxConn); err != nil {
 				log.WithError(err).Errorln("problem in initializing the process")
 				continue
