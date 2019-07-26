@@ -130,7 +130,7 @@ export const getDiskMetrics = createSelector(
       let free = 100 - used;
       return {
         series: [used, free],
-        labels: [`Used: ${used}%`, `Free: ${free}%`]
+        labels: [`Used: ${used.toFixed(2)}%`, `Free: ${free.toFixed(2)}%`]
       };
     }
   }

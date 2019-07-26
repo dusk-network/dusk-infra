@@ -88,7 +88,6 @@ class DuskSocket {
         break;
 
       case "status":
-      	console.log(packet)
       	const { round, blockHash, blockTimes, txs, threads } = packet
       	const block = {
 					height: round,
