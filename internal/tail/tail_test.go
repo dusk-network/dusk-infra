@@ -22,9 +22,9 @@ var tlogs = []struct {
 	values []string
 	err    error
 }{
-	{"pippo\npluto", 2, []string{"pippo", "pluto"}, nil},
-	{"pippo\npluto\n", 3, []string{"pippo", "pluto"}, nil},
-	{"pippo\npluto\npaperino", 2, []string{"pluto", "paperino"}, nil},
+	{"level=warning\nlevel=pluto\n", 2, []string{"level=warning", "level=pluto"}, nil},
+	{"level=pippo\nlevel=pluto\n", 3, []string{"level=pippo", "level=pluto"}, nil},
+	{"level=pippo\nlevel=pluto\nlevel=paperino", 2, []string{"level=pluto", "level=paperino"}, nil},
 }
 
 func TestFetchTail(t *testing.T) {
@@ -68,6 +68,19 @@ func TestMonitor(t *testing.T) {
 	assert.NoError(t, testJsonReception(d, testM.Value))
 }
 
+var testLogLines = []string{
+	`time="2019-06-26T15:15:30Z" level=debug  msg="received regeneration message" process=selection round=13 step=3`,
+	`time="2019-06-26T15:15:30Z" level="debug msg="starting selection" process=selection selector state="round: 13 / step: 2`,
+	`time="2019-06-26T15:15:31Z" Level = "debug" msg="sending proof" collector round=13 process=generation`,
+	`time="2019-06-26T15:15:31Z" level:debug msg="score does not exceed threshold" process=selection`,
+}
+
+func TestLevelRegexp(t *testing.T) {
+	for _, s := range testLogLines {
+		assert.Equal(t, []byte("debug"), tail.LevelRegexp.FindSubmatch([]byte(s))[1])
+	}
+}
+
 func testJsonReception(d *json.Decoder, test string) error {
 	m := monitor.NewParam("tail")
 	if err := d.Decode(m); err != nil {
@@ -95,11 +108,11 @@ func TestTailLog(t *testing.T) {
 	//giving some time
 	select {
 	case <-time.After(5 * time.Millisecond):
-		_, err = f.Write([]byte("pippo\n"))
+		_, err = f.Write([]byte("level=pippo\n"))
 		time.Sleep(5 * time.Millisecond)
 		if assert.NoError(t, err) {
 			d := json.NewDecoder(r)
-			assert.NoError(t, testJsonReception(d, "pippo"))
+			assert.NoError(t, testJsonReception(d, "level=pippo"))
 
 			if !assert.NoError(t, l.Tail.Stop()) {
 				assert.FailNow(t, "error in stopping tail process")
@@ -129,7 +142,7 @@ func TestShutdown(t *testing.T) {
 	for {
 		select {
 		case <-time.After(5 * time.Millisecond):
-			_, _ = f.Write([]byte("pippo\n"))
+			_, _ = f.Write([]byte("level=pippo\n"))
 			time.Sleep(5 * time.Millisecond)
 			counter++
 			if counter > 1 {

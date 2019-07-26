@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -21,6 +22,9 @@ var lg = logrus.WithField("process", "logtail")
 
 // LinesToRetain represents the number of lines we need to retain from the tail process
 var LinesToRetain = 10
+
+// LevelRegexp is used to isolate the log level for filtering purposes
+var LevelRegexp = regexp.MustCompile(`(?i)level\s*[=:][\s"]*(\w+)`)
 
 // Tailer is a convenience wrapper over a log file tailing
 type Tailer struct {
@@ -130,7 +134,15 @@ func (l *Tailer) FetchTail(r io.Reader, nrLines int) []*monitor.Param {
 	s := bufio.NewScanner(r)
 	lastLines := make([]*monitor.Param, 0, nrLines)
 	for s.Scan() {
-		txt := s.Text()
+		txt := strings.Trim(s.Text(), " ")
+		if len(txt) == 0 {
+			continue
+		}
+
+		if ShouldSkip(txt) {
+			continue
+		}
+
 		if len(lastLines) >= nrLines {
 			_, lastLines = lastLines[0], lastLines[1:]
 		}
@@ -145,6 +157,17 @@ func (l *Tailer) FetchTail(r io.Reader, nrLines int) []*monitor.Param {
 	}
 
 	return lastLines
+}
+
+// ShouldSkip returns true if a line of txt should not be forwarded
+func ShouldSkip(txt string) bool {
+	groups := LevelRegexp.FindSubmatch([]byte(txt))
+	if len(groups) < 2 {
+		return true
+	}
+
+	level := strings.ToLower(string(groups[1]))
+	return level == "debug" || level == "trace"
 }
 
 // IsOpen checks if the process is open or otherwise
@@ -186,6 +209,10 @@ func (l *Tailer) TailLog(w io.Writer) {
 	for line := range l.Tail.Lines {
 		row := strings.Trim(line.Text, " ")
 		if len(row) <= 0 {
+			continue
+		}
+
+		if ShouldSkip(row) {
 			continue
 		}
 		m := newParam(row)
