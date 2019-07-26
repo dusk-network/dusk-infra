@@ -3,8 +3,67 @@ package monitor
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"time"
 )
+
+// DataWindow is a shifting window of Data
+type DataWindow []map[string]interface{}
+
+// NewDataWindow create a new DataWindow
+func NewDataWindow() DataWindow {
+	return make([]map[string]interface{}, 0)
+}
+
+// Add all elements of a DataWindow
+func (d DataWindow) Add(other DataWindow) DataWindow {
+	return append(d, other...)
+}
+
+// Append data to DataWindow
+func (d DataWindow) Append(m map[string]interface{}) DataWindow {
+	now := time.Now()
+	if _, ok := m["timestamp"]; !ok {
+		m["timestamp"] = now.Format(time.RFC3339)
+	}
+
+	d = append(d, m)
+	sort.Sort(&d)
+
+	if len(d) > 0 {
+		// removing obsolete data
+		for _, prev := range d {
+			t := prev["timestamp"].(string)
+			tr, _ := time.Parse(time.RFC3339, t)
+
+			if now.Sub(tr) > MaxTimeSpan {
+				d = d[1:]
+				continue
+			}
+			break
+		}
+	}
+
+	return d
+}
+
+// Swap is part of sort.Interface
+func (d *DataWindow) Swap(i, j int) {
+	(*d)[i], (*d)[j] = (*d)[j], (*d)[i]
+}
+
+// Less is part of sort.Interface
+func (d *DataWindow) Less(i, j int) bool {
+	ti, tj := (*d)[i]["timestamp"].(string), (*d)[j]["timestamp"].(string)
+	timeI, _ := time.Parse(time.RFC3339, ti)
+	timeJ, _ := time.Parse(time.RFC3339, tj)
+	return timeI.Before(timeJ)
+}
+
+// Len is part of sort.Interface
+func (d *DataWindow) Len() int {
+	return len(*d)
+}
 
 // Datum is a timestamped value
 type Datum struct {
@@ -36,7 +95,7 @@ func (d *Datum) UnmarshalJSON(b []byte) error {
 type Window []Datum
 
 // MaxTimeSpan sets the time for when data gets obsolete
-var MaxTimeSpan = 1 * time.Minute
+var MaxTimeSpan = 5 * time.Minute
 
 // NewWindow is the constructor for a shifting window
 func NewWindow() Window {
