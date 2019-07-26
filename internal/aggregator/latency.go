@@ -19,8 +19,8 @@ func (c *Client) serializeLatency(p monitor.Param) string {
 	c.status.Latency = avg
 	c.lock.Unlock()
 
-	if avg > 150 {
-		return fmt.Sprintf("network too slow. Latency more than 150ms (%.0fms)", avg)
+	if avg > 250 {
+		return fmt.Sprintf("network too slow. Latency more than 250ms (%.0fms)", avg)
 	}
 
 	return ""
