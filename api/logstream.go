@@ -46,6 +46,7 @@ func (s status) merge(p monitor.Param) status {
 		s = s.mergeValue(p.Data, "nr", "threads")
 	case "round":
 		s = s.mergeValue(p.Data, "blockTime", "blockTimes")
+		s = s.mergeValue(p.Data, "numtxs", "txs")
 		s.Data["round"] = p.Data["round"]
 		s.Data["blockHash"] = p.Data["blockHash"]
 	default:

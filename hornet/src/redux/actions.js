@@ -13,6 +13,7 @@ import {
   UPDATE_NET_READ,
   UPDATE_THREAD,
   UPDATE_TIME_READ,
+  UPDATE_TX_READ,
   UPDATE_WARN_LIST,
 } from "./action-types";
 
@@ -53,6 +54,12 @@ export const updateMemoryRead = (value, timestamp) => ({
 
 export const updateBlockTimeRead = (value, timestamp) => ({
   type: UPDATE_TIME_READ,
+  value,
+  timestamp,
+});
+
+export const updateTxNr = (value, timestamp) => ({
+  type: UPDATE_TX_READ,
   value,
   timestamp,
 });

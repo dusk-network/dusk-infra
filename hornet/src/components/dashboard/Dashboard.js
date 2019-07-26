@@ -19,6 +19,7 @@ import {
   getNetMetrics,
   getThreadMetrics,
   getTimeMetrics,
+  getTxMetrics,
   getWarnings
 } from "../../redux/selectors";
 import BlockCreated from "./BlockCreated";
@@ -150,6 +151,7 @@ function Dashboard({
   items,
   lastBlock,
   blockTime,
+  txs,
   net,
   disk,
   memory,
@@ -217,7 +219,7 @@ function Dashboard({
             </Grid>
             <Grid item xs={12} sm={6}>
               <Paper className={fixedHeightPaper}>
-                <BlockTransactionChart data={blockTime} />
+                <BlockTransactionChart data={txs} />
               </Paper>
             </Grid>
             <Grid item xs={12} sm={9}>
@@ -268,6 +270,7 @@ const mapStateToProps = state => ({
   // locations: getNodeLocations(state),
   // score: getHighestScore(state),
   blockTime: getTimeMetrics(state),
+  txs: getTxMetrics(state),
   cpu: getCPUMetrics(state),
   log: getLogMetrics(state),
   net: getNetMetrics(state),

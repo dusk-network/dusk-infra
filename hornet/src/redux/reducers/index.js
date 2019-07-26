@@ -13,6 +13,7 @@ import {
   UPDATE_NET_READ,
   UPDATE_THREAD,
   UPDATE_TIME_READ,
+  UPDATE_TX_READ,
   UPDATE_WARN_LIST
 } from "../action-types";
 
@@ -23,10 +24,10 @@ const initialState = {
   lastBlock: {
     height: null,
     hash: null,
-    timestamp: null,
-    txs: 0
+    timestamp: null
   },
   blockTime: [],
+  txs: [],
   cpu: [],
   memory: [],
   net: [],
@@ -129,6 +130,14 @@ export default function(state = initialState, action) {
       };
     }
 
+    case UPDATE_TX_READ: {
+      let { type, ...item } = action;
+      return {
+        ...state,
+        txs: [item, ...state.txs]
+      };
+    }
+    	
     case UPDATE_TIME_READ: {
       let { type, ...item } = action;
       return {

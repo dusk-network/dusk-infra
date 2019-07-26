@@ -85,9 +85,10 @@ func sendBlock(w io.Writer) {
 	_, _ = rand.Read(msg)
 	blockHash := hex.EncodeToString(msg)
 	blockTime := rand.Float64()*3 + 3
+	txs := rand.Intn(50) + rand.Intn(100)
 	round++
 
-	s := fmt.Sprintf(`{"code": "round", "blockTime": %.2f, "blockHash": "%s", "round": %d}`, blockTime, blockHash, round)
+	s := fmt.Sprintf(`{"code": "round", "numtxs": %d, "blockTime": %.2f, "blockHash": "%s", "round": %d}`, txs, blockTime, blockHash, round)
 	mwrite(s, w)
 }
 

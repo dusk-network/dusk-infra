@@ -2,6 +2,7 @@ import { createSelector } from "reselect";
 
 const lastBlockInfo = state => state.lastBlock;
 const timeSelector = state => state.blockTime || [];
+const txSelector = state => state.txs || [];
 const cpuSelector = state => state.cpu || [];
 const logSelector = state => state.log || [];
 const netSelector = state => state.net || [];
@@ -29,7 +30,23 @@ export const getTimeMetrics = createSelector(
       .reduce(
         (acc, { value, timestamp }) => {
           acc.labels.push(timestamp);
-          acc.series[0].push((value / 1e3).toFixed(2));
+          acc.series[0].push(value.toFixed(2));
+          return acc;
+        },
+        { labels: [], series: [[]] }
+      )
+);
+
+export const getTxMetrics = createSelector(
+  txSelector,
+  txs =>
+    txs
+      .slice(0, 20)
+      .reverse()
+      .reduce(
+        (acc, { value, timestamp }) => {
+          acc.labels.push(timestamp);
+          acc.series[0].push(value);
           return acc;
         },
         { labels: [], series: [[]] }

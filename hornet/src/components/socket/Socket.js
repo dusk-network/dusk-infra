@@ -9,6 +9,7 @@ import {
   updateCPURead,
   updateDiskRead,
   updateLastBlockInfo,
+  updateTxNr,
   updateLogRead,
   updateMemoryRead,
   updateNetRead,
@@ -62,7 +63,7 @@ class DuskSocket {
       case "log":
         const { code, level } = packet;
         if (code && code === "round") {
-          const { round, blockHash, blockTime } = packet;
+          const { round, blockHash, blockTime, txs } = packet;
           const block = {
             height: round,
             hash: blockHash,
@@ -70,6 +71,7 @@ class DuskSocket {
           };
           dispatch(updateLastBlockInfo(block));
           dispatch(updateBlockTimeRead(blockTime, timestamp));
+          dispatch(updateTxNr(txs, timestamp));
           break;
         }
         if (code === "goroutine") {
@@ -86,7 +88,8 @@ class DuskSocket {
         break;
 
       case "status":
-      	const { round, blockHash, blockTimes, /*txs,*/ threads } = packet
+      	console.log(packet)
+      	const { round, blockHash, blockTimes, txs, threads } = packet
       	const block = {
 					height: round,
 					hash: blockHash,
@@ -95,7 +98,8 @@ class DuskSocket {
 				dispatch(updateLastBlockInfo(block));
 				blockTimes.map(({ value: blockTime, timestamp: stamp }) => dispatch(updateBlockTimeRead(+blockTime, stamp)))
 				threads.map(({ value: nr, timestamp: stamp }) => dispatch(updateThread(+nr, stamp)))
-				// TODO: transactions?
+				txs.map(({ value: txs, timestamp: stamp }) => dispatch(updateTxNr(+txs, stamp)))
+
 				break;
 
       case "tail":
