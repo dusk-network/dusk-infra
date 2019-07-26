@@ -38,9 +38,23 @@ func (s status) merge(p monitor.Param) status {
 		s = s.mergeValue(p.Data, "numtxs", "txs")
 		s.Data["round"] = p.Data["round"]
 		s.Data["blockHash"] = p.Data["blockHash"]
+	case "warn":
+		s = s.mergeText(p.Data)
 	default:
 		log.WithField("code", code).Warnln("unrecognized code")
 	}
+	return s
+}
+
+func (s status) mergeText(data map[string]interface{}) status {
+	i, found := s.Data["warnings"]
+	if !found {
+		i = monitor.NewDataWindow()
+	}
+
+	d := i.(monitor.DataWindow)
+	d = d.Append(data)
+	s.Data["warnings"] = d
 	return s
 }
 
@@ -130,7 +144,7 @@ func (l *Monitor) Wire(multiwrt io.Writer) {
 				log.Debug("waiting for packet")
 				select {
 				case p := <-l.dataChan:
-					log.Debugf("got packet: %s\n", p.String())
+					log.Tracef("got packet: %s\n", p.String())
 					if err := l.forward(multiwrt, p); err != nil {
 						return
 					}

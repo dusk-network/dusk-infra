@@ -80,6 +80,7 @@ class DuskSocket {
           dispatch(updateThread(nr, timestamp));
           break;
         }
+
         if (level) {
           const { time = timestamp } = packet;
           dispatch(updateWarningList(packet, time));
@@ -88,7 +89,7 @@ class DuskSocket {
         break;
 
       case "status":
-      	const { round, blockHash, blockTimes, txs, threads } = packet
+      	const { warnings=[], round, blockHash, blockTimes=[], txs=[], threads=[] } = packet
       	const block = {
 					height: round,
 					hash: blockHash,
@@ -98,6 +99,7 @@ class DuskSocket {
 				blockTimes.map(({ value: blockTime, timestamp: stamp }) => dispatch(updateBlockTimeRead(+blockTime, stamp)))
 				threads.map(({ value: nr, timestamp: stamp }) => dispatch(updateThread(+nr, stamp)))
 				txs.map(({ value: txs, timestamp: stamp }) => dispatch(updateTxNr(+txs, stamp)))
+				warnings.map(({ timestamp: stamp, ...others }) => dispatch(updateWarningList(others, timestamp)))
 
 				break;
 
