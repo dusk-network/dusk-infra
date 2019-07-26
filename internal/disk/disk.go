@@ -46,7 +46,7 @@ func (d *Disk) Monitor(w io.Writer, m *monitor.Param) error {
 			"mountpoint": part.Mountpoint,
 		}).Debugln("reading disk usage")
 
-		if part.Mountpoint == "/" {
+		if part.Mountpoint == "/" || part.Mountpoint == "/root" {
 			u, err := disk.Usage(part.Mountpoint)
 			if err != nil {
 				return err

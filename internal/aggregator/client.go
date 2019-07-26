@@ -161,7 +161,11 @@ func (c *Client) forward(r io.Reader, endpoint string) {
 		return
 	}
 
-	log.WithField("response", string(resp)).Debugln(endpoint + " sent")
+	log.WithField("response status code", res.StatusCode).Debugln(endpoint + " sent")
+	log.WithFields(lg.Fields{
+		"response": resp,
+		"endpoint": endpoint,
+	}).Traceln("response received")
 }
 
 func (c *Client) sendUpdate() {
@@ -170,7 +174,8 @@ func (c *Client) sendUpdate() {
 		<-tick.C
 		b := new(bytes.Buffer)
 		c.lock.RLock()
-		log.WithField("status", c.status).Debugln("sending update")
+		bs, _ := json.Marshal(c.status)
+		log.WithField("status", string(bs)).Debugln("sending update")
 		_ = json.NewEncoder(b).Encode(c.status)
 		c.lock.RUnlock()
 		c.forward(b, "update")
