@@ -11,6 +11,9 @@ import (
 
 var log = lg.WithField("process", "monitor")
 
+var _ StatefulMon = (*TickerMonitor)(nil)
+var _ ForceMon = (*TickerMonitor)(nil)
+
 type (
 	// StatefulMon is a monitoring process that carries an initial state
 	// to be communicated to new inbound connections
@@ -30,6 +33,12 @@ type (
 		Shutdown()
 	}
 
+	// ForceMon is an interface for a Monitor that can force a sampling
+	ForceMon interface {
+		Mon
+		ForceSampling()
+	}
+
 	// Param is the json encodable structure communicated to the monitoring clients
 	Param struct {
 		Timestamp time.Time              `json:"timestamp"`
@@ -47,9 +56,10 @@ type (
 	// TickerMonitor pushes data collected from the monitoring with a given frequency
 	TickerMonitor struct {
 		Sampler
-		Metric   string
-		quitChan chan struct{}
-		i        time.Duration
+		Metric    string
+		quitChan  chan struct{}
+		forceChan chan struct{}
+		i         time.Duration
 	}
 )
 
@@ -80,10 +90,11 @@ func (p *Param) Add(v float64) {
 // New creates a TickerMonitor
 func New(s Sampler, i time.Duration, metric string) *TickerMonitor {
 	return &TickerMonitor{
-		Sampler:  s,
-		i:        i,
-		quitChan: make(chan struct{}, 1),
-		Metric:   metric,
+		Sampler:   s,
+		i:         i,
+		quitChan:  make(chan struct{}, 1),
+		forceChan: make(chan struct{}, 1),
+		Metric:    metric,
 	}
 }
 
@@ -96,12 +107,22 @@ func (m *TickerMonitor) Wire(w io.Writer) {
 			if err := m.write(w); err != nil {
 				log.WithError(err).Errorln("connection problem")
 			}
+		case <-m.forceChan:
+			log.WithField("metric", m.Metric).Infoln("forcing sampling")
+			if err := m.write(w); err != nil {
+				log.WithError(err).Errorln("connection problem")
+			}
 		case <-m.quitChan:
 			log.WithField("metric", m.Metric).Infoln("quitting on request of the client")
 			ticker.Stop()
 			return
 		}
 	}
+}
+
+// ForceSampling triggers the Sampler to perform a read
+func (m *TickerMonitor) ForceSampling() {
+	m.forceChan <- struct{}{}
 }
 
 // Shutdown sends a signal to the internal quit channel

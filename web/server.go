@@ -73,6 +73,14 @@ func (s *Srv) stats(w http.ResponseWriter, r *http.Request) {
 
 	// communicating the initial state to the new connection
 	for _, mon := range s.Monitors {
+		// this is to force sampling immediately when a new connection arrives
+		// so to not show a blank chart
+		log.Debugln("forcing sampling on monitors allowing that")
+		force, okForce := mon.(monitor.ForceMon)
+		if okForce {
+			force.ForceSampling()
+		}
+
 		log.Debugln("checking stateful monitor")
 		init, ok := mon.(monitor.StatefulMon)
 		if ok {

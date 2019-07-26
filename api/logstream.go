@@ -15,6 +15,7 @@ import (
 
 var quitSig = struct{}{}
 var log = lg.WithField("process", "logstream")
+var _ monitor.StatefulMon = (*Monitor)(nil)
 
 // status saves the last Param per code to send it upon a new incoming
 // connection
@@ -22,18 +23,6 @@ type status monitor.Param
 
 // Tolerance represents the maximum amount of time to retain data
 var Tolerance = time.Minute * 15
-
-// Monitor is a TCP server listening for json-encoded data from a single (local) connection.
-// It exposes an error channel for notifying of problems and listens a quit channel for termination requests
-// Packets are json-encoded and are proxied to both the client and an aggregator. Ideally, it would use a stream multiplexer to abstract writers away but given its focus on being a simple channel for node logging, the complication of introducing an abstraction layer is  rather unnecessary
-// Monitor implements the monitor.Mon interface
-type Monitor struct {
-	state    status
-	srv      net.Listener
-	ErrChan  chan error
-	quitChan chan struct{}
-	dataChan chan monitor.Param
-}
 
 func (s status) merge(p monitor.Param) status {
 	code, found := p.Data["code"]
@@ -75,6 +64,18 @@ func (s status) mergeValue(data map[string]interface{}, k, target string) status
 	valWindow = valWindow.Append(val)
 	s.Data[target] = valWindow
 	return s
+}
+
+// Monitor is a TCP server listening for json-encoded data from a single (local) connection.
+// It exposes an error channel for notifying of problems and listens a quit channel for termination requests
+// Packets are json-encoded and are proxied to both the client and an aggregator. Ideally, it would use a stream multiplexer to abstract writers away but given its focus on being a simple channel for node logging, the complication of introducing an abstraction layer is  rather unnecessary
+// Monitor implements the monitor.Mon interface
+type Monitor struct {
+	state    status
+	srv      net.Listener
+	ErrChan  chan error
+	quitChan chan struct{}
+	dataChan chan monitor.Param
 }
 
 // New creates a new LogProxy from a host. The host should be a correct URL (such as unix:///path/to/unix.sock)
