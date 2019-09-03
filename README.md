@@ -1,4 +1,4 @@
-# Testnetkjjj "0   2147483647"dfk node monitoring
+# Testnet node monitoring
 /path/to/monitor`  
 ## Synopsis
 
